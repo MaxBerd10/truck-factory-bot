@@ -150,3 +150,13 @@ def worker_history_detail_keyboard(step: TruckStep):
 
     builder.adjust(1, 1)
     return builder.as_markup()
+
+
+
+def worker_after_submit_keyboard():
+    """Ish yuborilgandan keyin tugmalar."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📋 Vazifalarimga", callback_data="worker_refresh")
+    builder.button(text="🔙 Asosiy menyu", callback_data="main_menu")
+    builder.adjust(2)
+    return builder.as_markup()

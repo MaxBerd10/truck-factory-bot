@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.filters import IsWorker
 from src.bot.keyboards import (
+    worker_after_submit_keyboard,
     worker_submit_cancel_keyboard,
     worker_submit_confirm_keyboard,
     worker_submit_skip_comment_keyboard,
@@ -212,10 +213,15 @@ async def confirm_submit(
         await state.clear()
         return
 
-    # Media ni saqlash
     media_type = data["media_type"]
     media_file_id = data["media_file_id"]
     media_local_path = None
+
+    # "Yuklanmoqda..." xabari
+    loading_msg = await callback.message.answer(
+        "⏳ <b>Yuklanmoqda...</b>\n\n"
+        "<i>Iltimos, kuting. Video katta bo'lsa, 30 sekundgacha olishi mumkin.</i>"
+    )
 
     try:
         file = await bot.get_file(media_file_id)
@@ -235,10 +241,25 @@ async def confirm_submit(
 
         logger.info(f"📁 Media saqlandi: {media_local_path}")
 
+        try:
+            await loading_msg.edit_text(
+                "✅ <b>Media saqlandi!</b>\n\n"
+                "<i>Endi QC ga yuborilmoqda...</i>"
+            )
+        except Exception:
+            pass
+
     except Exception as e:
         logger.error(f"❌ Media saqlashda xato: {e}")
+        try:
+            await loading_msg.edit_text(
+                "⚠️ <b>Media yuklashda xato!</b>\n\n"
+                "<i>Lekin davom etamiz.</i>"
+            )
+        except Exception:
+            pass
 
-    # Step ni yuborish + QC ga bildirishnoma
+    # Step ni yuborish
     await submit_step(
         session=session,
         step=step,
@@ -252,14 +273,21 @@ async def confirm_submit(
 
     await state.clear()
 
+    try:
+        await loading_msg.delete()
+    except Exception:
+        pass
+
     step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
 
-    await callback.message.edit_text(
+    # Tugmalar bilan yuboramiz
+    await callback.message.answer(
         f"✅ <b>Ish yuborildi!</b>\n\n"
         f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
         f"🔧 Step: <b>{step_name}</b>\n\n"
         f"📊 Holat: <b>🔍 QC tekshiruvida</b>\n\n"
-        f"<i>Sifat nazoratchisi tekshirib, tasdiqlaydi yoki rad etadi.</i>"
+        f"<i>Sifat nazoratchisi tekshirib, tasdiqlaydi yoki rad etadi.</i>",
+        reply_markup=worker_after_submit_keyboard(),
     )
 
 
@@ -301,14 +329,7 @@ async def _show_submit_confirmation(
     state: FSMContext,
     use_edit: bool = True,
 ) -> None:
-    """Tasdiqlash oynasini ko'rsatish.
-
-    Args:
-        message: Xabar
-        state: FSM kontekst
-        use_edit: True bo'lsa — edit_text (callback uchun).
-                  False bo'lsa — answer (yangi matn uchun).
-    """
+    """Tasdiqlash oynasini ko'rsatish."""
     data = await state.get_data()
 
     media_type = data.get("media_type", "photo")

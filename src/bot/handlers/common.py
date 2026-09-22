@@ -1,9 +1,9 @@
 """/start, /help va umumiy handlerlar."""
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
-from src.bot.keyboards import main_menu_keyboard, start_keyboard
+from src.bot.keyboards import main_menu_keyboard
 from src.database.models.user import User
 from src.services.user_service import create_admin_if_needed
 from src.utils.constants import ROLE_NAMES, STEP_NAMES
@@ -13,7 +13,7 @@ from src.utils.logger import logger
 router = Router(name="common")
 
 
-# ==== /start ====
+# ==== /start (deep link siz) ====
 @router.message(CommandStart(deep_link=False))
 async def cmd_start(
     message: Message,
@@ -23,12 +23,10 @@ async def cmd_start(
     """Start buyrug'i — foydalanuvchini tanish yoki admin yaratish."""
     tg_user = message.from_user
 
-    # 1. Agar ro'yxatdan o'tgan bo'lsa — menyu
     if user:
         await show_main_menu(message, user)
         return
 
-    # 2. Adminmi? Avtomatik yaratamiz
     admin = await create_admin_if_needed(
         session=session,
         telegram_id=tg_user.id,
@@ -44,23 +42,20 @@ async def cmd_start(
         )
         return
 
-    # 3. Ro'yxatdan o'tmagan
     await message.answer(
         "🚫 <b>Ruxsat yo'q</b>\n\n"
         "Siz tizimda ro'yxatdan o'tmagansiz.\n\n"
         "Ishga qabul qilinish uchun <b>administratorga</b> murojaat qiling.\n"
         "Agar sizda <b>taklif havolasi</b> bo'lsa, uni bosing.",
-        reply_markup=None,
     )
+
 
 # ==== /help ====
 @router.message(Command("help"))
 async def cmd_help(message: Message, user: User | None):
     """Yordam."""
     if not user:
-        await message.answer(
-            "Yordam olish uchun administratorga murojaat qiling."
-        )
+        await message.answer("Yordam olish uchun administratorga murojaat qiling.")
         return
 
     help_text = (
@@ -72,10 +67,7 @@ async def cmd_help(message: Message, user: User | None):
     )
 
     if user.is_admin:
-        help_text += (
-            "\n<b>Admin buyruqlari:</b>\n"
-            "/admin — Admin panel\n"
-        )
+        help_text += "\n<b>Admin buyruqlari:</b>\n/admin — Admin panel\n"
 
     await message.answer(help_text)
 
@@ -92,14 +84,50 @@ async def cmd_id(message: Message):
     )
 
 
-# ==== Asosiy menyu tugmasi ====
+# ==== 🏠 Asosiy menyu (reply tugma) ====
 @router.message(F.text == "🏠 Asosiy menyu")
 async def btn_main_menu(message: Message, user: User | None):
-    """Asosiy menyuga qaytish."""
+    """Reply tugmadan asosiy menyuga qaytish."""
     if not user:
         await message.answer("Ruxsat yo'q. Administratorga murojaat qiling.")
         return
     await show_main_menu(message, user)
+
+
+# ==== 🔙 Asosiy menyu (inline callback) — HAMMA UCHUN ====
+@router.callback_query(F.data == "main_menu")
+async def callback_main_menu(
+    callback: CallbackQuery,
+    user: User | None,
+):
+    """Inline tugmadan asosiy menyuga qaytish (hamma rollar uchun)."""
+    await callback.answer()
+
+    if not user:
+        await callback.message.answer("Ruxsat yo'q.")
+        return
+
+    # Eski xabarni o'chirishga urinamiz
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    # Yangi xabar bilan asosiy menyu
+    role_name = ROLE_NAMES.get(user.role, user.role)
+
+    text = f"🏠 <b>Asosiy menyu</b>\n\n"
+    text += f"👋 Salom, <b>{user.full_name}</b>!\n"
+    text += f"🎭 Rol: {role_name}\n"
+
+    if user.step_number:
+        step_name = STEP_NAMES.get(user.step_number, f"Step {user.step_number}")
+        text += f"🔧 Bo'lim: {step_name}\n"
+
+    await callback.message.answer(
+        text,
+        reply_markup=main_menu_keyboard(user.role),
+    )
 
 
 # ==== Yordamchi funksiya ====

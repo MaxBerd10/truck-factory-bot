@@ -12,7 +12,6 @@ def setup_handlers() -> Router:
     """Barcha handlerlarni birlashtirib, asosiy routerni qaytaradi."""
     main_router = Router(name="main")
 
-    # Tartib MUHIM:
     # 1. Registration (deep link)
     main_router.include_router(registration_router)
 
@@ -25,7 +24,7 @@ def setup_handlers() -> Router:
     # 4. Admin
     main_router.include_router(get_admin_router())
 
-    # 5. Umumiy (start, help, id) — oxirgi
+    # 5. Umumiy (start, help, id, main_menu) — OXIRGI!
     main_router.include_router(common_router)
 
     return main_router

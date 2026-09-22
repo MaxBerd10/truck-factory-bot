@@ -144,3 +144,12 @@ def qc_history_detail_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(text="🔙 Tarixga", callback_data="qc_history")
     return builder.as_markup()
+
+
+def qc_after_action_keyboard():
+    """QC amaldan keyingi tugmalar (approve/reject dan keyin)."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔔 Navbatga qaytish", callback_data="qc_refresh")
+    builder.button(text="🔙 Asosiy menyu", callback_data="main_menu")
+    builder.adjust(2)
+    return builder.as_markup()

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.filters import IsQC
 from src.bot.keyboards import (
+    qc_after_action_keyboard,
     qc_approve_confirm_keyboard,
     qc_queue_keyboard,
     qc_reject_cancel_keyboard,
@@ -135,7 +136,11 @@ async def confirm_approve(
             f"<i>Endi keyingi step ishchisi ishlashi mumkin.</i>"
         )
 
-    await callback.message.answer(text)
+    # Tugmalar bilan yuboramiz
+    await callback.message.answer(
+        text,
+        reply_markup=qc_after_action_keyboard(),
+    )
 
 
 # ==== Reject — sabab so'rash ====
@@ -248,7 +253,11 @@ async def confirm_reject(
         f"<i>Ishchiga xabar yuborildi, qayta yuborishi mumkin.</i>"
     )
 
-    await callback.message.answer(text)
+    # Tugmalar bilan yuboramiz
+    await callback.message.answer(
+        text,
+        reply_markup=qc_after_action_keyboard(),
+    )
 
 
 # ==== Reject — restart ====
@@ -285,31 +294,14 @@ async def cancel_reject(
     step_id = data.get("step_id")
     await state.clear()
 
-    if step_id:
-        step = await get_step_for_review(session, step_id)
-        if step and step.status == "in_review":
-            steps = await get_qc_queue(session)
-
-            if not steps:
-                await callback.message.answer(
-                    "🔔 <b>Tekshirish navbati</b>\n\n"
-                    "✅ Navbat bo'sh."
-                )
-                return
-
-            await callback.message.answer(
-                f"🔔 <b>Tekshirish navbati</b>\n\n"
-                f"📊 Jami: <b>{len(steps)}</b> ta ish",
-                reply_markup=qc_queue_keyboard(steps),
-            )
-            return
-
+    # Navbatga qaytamiz
     steps = await get_qc_queue(session)
 
     if not steps:
         await callback.message.answer(
             "🔔 <b>Tekshirish navbati</b>\n\n"
-            "✅ Navbat bo'sh."
+            "✅ Navbat bo'sh.",
+            reply_markup=qc_after_action_keyboard(),
         )
         return
 

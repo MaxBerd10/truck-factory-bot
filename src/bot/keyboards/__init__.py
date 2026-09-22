@@ -1,4 +1,18 @@
 """Keyboards."""
+from src.bot.keyboards.qc import (
+    qc_after_action_keyboard,
+    qc_approve_confirm_keyboard,
+    qc_history_detail_keyboard,
+    qc_history_keyboard,
+    qc_queue_keyboard,
+    qc_reject_cancel_keyboard,
+    qc_reject_confirm_keyboard,
+    qc_review_keyboard,
+)
+
+
+
+
 from src.bot.keyboards.admin import (
     cancel_add_user_keyboard,
     confirm_add_user_keyboard,
@@ -82,6 +96,8 @@ __all__ = [
     "truck_priority_keyboard",
     "truck_skip_keyboard",
     "truck_confirm_keyboard",
+    "qc_after_action_keyboard",
+
 
     # QC
     "qc_queue_keyboard",

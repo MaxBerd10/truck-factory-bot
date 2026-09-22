@@ -32,6 +32,13 @@ from src.bot.keyboards.reply import (
     start_keyboard,
     worker_main_menu,
 )
+from src.bot.keyboards.truck import (
+    truck_confirm_keyboard,
+    truck_detail_keyboard,
+    truck_priority_keyboard,
+    truck_skip_keyboard,
+    trucks_list_keyboard,
+)
 
 
 __all__ = [
@@ -60,4 +67,9 @@ __all__ = [
     "invite_detail_keyboard",
     "registration_skip_phone_keyboard",
     "registration_confirm_keyboard",
+    "trucks_list_keyboard",
+    "truck_detail_keyboard",
+    "truck_priority_keyboard",
+    "truck_skip_keyboard",
+    "truck_confirm_keyboard",
 ]

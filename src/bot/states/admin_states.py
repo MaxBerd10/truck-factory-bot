@@ -19,3 +19,13 @@ class CreateInviteFSM(StatesGroup):
     expires_in = State()
     max_uses = State()
     confirm = State()
+
+
+class AddTruckFSM(StatesGroup):
+    """Yangi truck qo'shish bosqichlari."""
+    serial_number = State()
+    model = State()
+    customer = State()
+    deadline = State()
+    priority = State()
+    confirm = State()

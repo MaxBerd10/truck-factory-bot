@@ -1,5 +1,5 @@
 """QC — Ishni tekshirish (approve/reject)."""
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -86,7 +86,6 @@ async def ask_approve(
     else:
         text += "<i>Bu oxirgi step — truck TAYYOR bo'ladi!</i>"
 
-    # Rasmli xabarni edit_text qilib bo'lmaydi — yangi xabar yuboramiz
     await callback.message.answer(
         text,
         reply_markup=qc_approve_confirm_keyboard(step_id),
@@ -99,6 +98,7 @@ async def confirm_approve(
     callback: CallbackQuery,
     session: AsyncSession,
     user: User,
+    bot: Bot,
 ):
     """Tasdiqlashni amalga oshirish."""
     step_id = int(callback.data.split(":")[1])
@@ -108,8 +108,8 @@ async def confirm_approve(
         await callback.answer("❌ Xato", show_alert=True)
         return
 
-    # Tasdiqlash
-    truck = await approve_step(session, step, qc_id=user.id)
+    # Tasdiqlash + bildirishnoma
+    truck = await approve_step(session, step, qc_id=user.id, bot=bot)
 
     await callback.answer("✅ Tasdiqlandi", show_alert=False)
 
@@ -200,7 +200,6 @@ async def process_reject_reason(
     data = await state.get_data()
     step_id = data["step_id"]
 
-    # Tasdiqlash
     await message.answer(
         f"❌ <b>Rad etishni tasdiqlang</b>\n\n"
         f"📝 Sabab: <i>{text}</i>\n\n"
@@ -216,6 +215,7 @@ async def confirm_reject(
     state: FSMContext,
     session: AsyncSession,
     user: User,
+    bot: Bot,
 ):
     """Rad etishni amalga oshirish."""
     step_id = int(callback.data.split(":")[1])
@@ -232,8 +232,8 @@ async def confirm_reject(
         await callback.answer("❌ Xato", show_alert=True)
         return
 
-    # Rad etish
-    await reject_step(session, step, qc_id=user.id, reason=reason)
+    # Rad etish + bildirishnoma
+    await reject_step(session, step, qc_id=user.id, reason=reason, bot=bot)
 
     await state.clear()
     await callback.answer("❌ Rad etildi", show_alert=False)
@@ -288,7 +288,6 @@ async def cancel_reject(
     if step_id:
         step = await get_step_for_review(session, step_id)
         if step and step.status == "in_review":
-            # Navbatga qaytamiz
             steps = await get_qc_queue(session)
 
             if not steps:
@@ -305,7 +304,6 @@ async def cancel_reject(
             )
             return
 
-    # Navbatga qaytish
     steps = await get_qc_queue(session)
 
     if not steps:
@@ -361,7 +359,6 @@ async def _send_review(callback: CallbackQuery, step) -> None:
 
     text += f"\n📊 <b>Qarorni tanlang:</b>"
 
-    # Media ni yuboramiz (agar bo'lsa)
     if step.media_type == "photo" and step.media_file_id:
         await callback.message.answer_photo(
             photo=step.media_file_id,
@@ -381,7 +378,6 @@ async def _send_review(callback: CallbackQuery, step) -> None:
             reply_markup=qc_review_keyboard(step.id),
         )
     else:
-        # Media yo'q — oddiy xabar
         await callback.message.answer(
             text,
             reply_markup=qc_review_keyboard(step.id),

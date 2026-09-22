@@ -1,12 +1,14 @@
 """TruckStep bilan ishlash servisi."""
 from datetime import datetime, timezone
 
+from aiogram import Bot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.database.models.truck import Truck
 from src.database.models.truck_step import TruckStep
+from src.services.notification_service import notify_qc_new_work
 from src.utils.logger import logger
 
 
@@ -29,7 +31,7 @@ async def get_worker_tasks(
         .where(TruckStep.step_number == step_number)
         .where(TruckStep.status.in_(["pending", "rejected"]))
         .where(Truck.status == "in_progress")
-        .where(Truck.current_step == step_number)  # ← YANGI SHART
+        .where(Truck.current_step == step_number)
         .options(selectinload(TruckStep.truck))
         .order_by(
             Truck.priority.desc(),
@@ -39,6 +41,8 @@ async def get_worker_tasks(
     )
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+
 async def get_step_by_id(
     session: AsyncSession,
     step_id: int,
@@ -51,11 +55,14 @@ async def get_step_with_truck(
     session: AsyncSession,
     step_id: int,
 ) -> TruckStep | None:
-    """ID bo'yicha step topish (truck bilan birga)."""
+    """ID bo'yicha step topish (truck va worker bilan)."""
     stmt = (
         select(TruckStep)
         .where(TruckStep.id == step_id)
-        .options(selectinload(TruckStep.truck))
+        .options(
+            selectinload(TruckStep.truck),
+            selectinload(TruckStep.worker),
+        )
     )
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
@@ -87,8 +94,13 @@ async def submit_step(
     media_file_id: str,
     media_local_path: str | None = None,
     worker_comment: str | None = None,
+    bot: Bot | None = None,
 ) -> TruckStep:
-    """Ishchi stepni yuboradi (QC tekshiruviga)."""
+    """Ishchi stepni yuboradi (QC tekshiruviga).
+
+    Args:
+        bot: Agar berilsa — QC ga bildirishnoma yuboriladi
+    """
     step.worker_id = worker_id
     step.status = "in_review"
     step.media_type = media_type
@@ -109,6 +121,13 @@ async def submit_step(
         f"step={step.step_number}, worker_id={worker_id}, "
         f"media={media_type}"
     )
+
+    # QC ga bildirishnoma
+    if bot:
+        try:
+            await notify_qc_new_work(bot, session, step)
+        except Exception as e:
+            logger.error(f"❌ QC bildirishnoma xatosi: {e}")
 
     return step
 
@@ -138,14 +157,12 @@ async def get_worker_stats(
     """Ishchining statistikasi."""
     from sqlalchemy import func
 
-    # Jami
     total_stmt = (
         select(func.count(TruckStep.id))
         .where(TruckStep.worker_id == worker_id)
     )
     total = (await session.execute(total_stmt)).scalar() or 0
 
-    # Approved
     approved_stmt = (
         select(func.count(TruckStep.id))
         .where(TruckStep.worker_id == worker_id)
@@ -153,7 +170,6 @@ async def get_worker_stats(
     )
     approved = (await session.execute(approved_stmt)).scalar() or 0
 
-    # In review
     in_review_stmt = (
         select(func.count(TruckStep.id))
         .where(TruckStep.worker_id == worker_id)
@@ -161,7 +177,6 @@ async def get_worker_stats(
     )
     in_review = (await session.execute(in_review_stmt)).scalar() or 0
 
-    # Rejected
     rejected_stmt = (
         select(func.count(TruckStep.id))
         .where(TruckStep.worker_id == worker_id)

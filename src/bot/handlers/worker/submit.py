@@ -44,7 +44,6 @@ async def start_submit(
         await callback.answer("❌ Vazifa topilmadi", show_alert=True)
         return
 
-    # Ishchi o'z stepidami?
     if step.step_number != user.step_number:
         await callback.answer(
             "❌ Bu sizning stepingiz emas",
@@ -52,7 +51,6 @@ async def start_submit(
         )
         return
 
-    # Status tekshirish
     if step.status not in ["pending", "rejected"]:
         await callback.answer(
             "❌ Bu vazifa allaqachon yuborilgan",
@@ -60,7 +58,6 @@ async def start_submit(
         )
         return
 
-    # Stepni ishchiga biriktiramiz (claim)
     await claim_step(session, step, worker_id=user.id)
 
     await callback.answer()
@@ -191,8 +188,6 @@ async def process_comment(
     await state.update_data(worker_comment=text)
     await state.set_state(SubmitWorkFSM.confirm)
 
-    # MUHIM: foydalanuvchi yozgan matnni tahrirlab bo'lmaydi
-    # Shuning uchun _show_submit_confirmation ga `use_edit=False` beramiz
     await _show_submit_confirmation(message, state, use_edit=False)
 
 
@@ -223,15 +218,12 @@ async def confirm_submit(
     media_local_path = None
 
     try:
-        # Telegram dan yuklab olish
         file = await bot.get_file(media_file_id)
 
-        # Papka
         media_dir = Path(settings.MEDIA_ROOT)
         folder = media_dir / "trucks" / str(step.truck_id) / f"step_{step.step_number}"
         folder.mkdir(parents=True, exist_ok=True)
 
-        # Kengaytma
         ext_map = {"photo": ".jpg", "video": ".mp4", "document": ".bin"}
         ext = ext_map.get(media_type, ".bin")
 
@@ -245,9 +237,8 @@ async def confirm_submit(
 
     except Exception as e:
         logger.error(f"❌ Media saqlashda xato: {e}")
-        # Media saqlanmasa ham davom etamiz (file_id yetarli)
 
-    # Step ni yuborish
+    # Step ni yuborish + QC ga bildirishnoma
     await submit_step(
         session=session,
         step=step,
@@ -256,6 +247,7 @@ async def confirm_submit(
         media_file_id=media_file_id,
         media_local_path=media_local_path,
         worker_comment=data.get("worker_comment"),
+        bot=bot,
     )
 
     await state.clear()
@@ -314,8 +306,8 @@ async def _show_submit_confirmation(
     Args:
         message: Xabar
         state: FSM kontekst
-        use_edit: True bo'lsa — edit_text ishlatamiz (callback uchun).
-                  False bo'lsa — answer ishlatamiz (yangi matn uchun).
+        use_edit: True bo'lsa — edit_text (callback uchun).
+                  False bo'lsa — answer (yangi matn uchun).
     """
     data = await state.get_data()
 
@@ -337,10 +329,16 @@ async def _show_submit_confirmation(
     )
 
     if use_edit:
-        await message.edit_text(
-            text,
-            reply_markup=worker_submit_confirm_keyboard(),
-        )
+        try:
+            await message.edit_text(
+                text,
+                reply_markup=worker_submit_confirm_keyboard(),
+            )
+        except Exception:
+            await message.answer(
+                text,
+                reply_markup=worker_submit_confirm_keyboard(),
+            )
     else:
         await message.answer(
             text,

@@ -1,4 +1,13 @@
 """Services."""
+from src.services.notification_service import (
+    notify_admin_truck_completed,
+    notify_next_worker,
+    notify_qc_new_work,
+    notify_worker_approved,
+    notify_worker_rejected,
+)
+
+
 from src.services.qc_service import (
     approve_step,
     get_qc_history,
@@ -82,4 +91,12 @@ __all__ = [
     "get_qc_history",
     "get_qc_stats",
     "get_queue_count",
+
+
+    # Notification
+    "notify_qc_new_work",
+    "notify_worker_approved",
+    "notify_worker_rejected",
+    "notify_next_worker",
+    "notify_admin_truck_completed",
 ]

@@ -1,12 +1,19 @@
 """QC (Sifat nazoratchisi) servisi."""
 from datetime import datetime, timezone
 
+from aiogram import Bot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.database.models.truck import Truck
 from src.database.models.truck_step import TruckStep
+from src.services.notification_service import (
+    notify_admin_truck_completed,
+    notify_next_worker,
+    notify_worker_approved,
+    notify_worker_rejected,
+)
 from src.utils.constants import TOTAL_STEPS
 from src.utils.logger import logger
 
@@ -15,11 +22,7 @@ async def get_qc_queue(
     session: AsyncSession,
     limit: int = 50,
 ) -> list[TruckStep]:
-    """Tekshirish navbatini olish.
-
-    Faqat `in_review` holatidagi steplar.
-    Eng eski (avval yuborilgan) birinchi.
-    """
+    """Tekshirish navbatini olish."""
     stmt = (
         select(TruckStep)
         .join(Truck, TruckStep.truck_id == Truck.id)
@@ -30,8 +33,8 @@ async def get_qc_queue(
             selectinload(TruckStep.worker),
         )
         .order_by(
-            Truck.priority.desc(),  # urgent birinchi
-            TruckStep.submitted_at.asc(),  # eski birinchi
+            Truck.priority.desc(),
+            TruckStep.submitted_at.asc(),
         )
         .limit(limit)
     )
@@ -60,8 +63,12 @@ async def approve_step(
     session: AsyncSession,
     step: TruckStep,
     qc_id: int,
+    bot: Bot | None = None,
 ) -> Truck:
     """Stepni tasdiqlash.
+
+    Args:
+        bot: Agar berilsa — ishchi, keyingi ishchi va adminga bildirishnoma
 
     Returns:
         Yangilangan Truck
@@ -93,6 +100,24 @@ async def approve_step(
         )
 
     await session.flush()
+
+    # ===== Bildirishnomalar =====
+    if bot:
+        try:
+            # 1. Ishchiga "tasdiqlandi"
+            await notify_worker_approved(bot, session, step)
+
+            # 2. Truck tayyor bo'lsa — adminga
+            if truck.is_completed:
+                await notify_admin_truck_completed(bot, session, truck)
+            else:
+                # 3. Keyingi step ishchisiga "yangi vazifa"
+                await notify_next_worker(
+                    bot, session, truck, truck.current_step
+                )
+        except Exception as e:
+            logger.error(f"❌ Bildirishnoma xatosi (approve): {e}")
+
     return truck
 
 
@@ -101,8 +126,13 @@ async def reject_step(
     step: TruckStep,
     qc_id: int,
     reason: str,
+    bot: Bot | None = None,
 ) -> TruckStep:
-    """Stepni rad etish."""
+    """Stepni rad etish.
+
+    Args:
+        bot: Agar berilsa — ishchiga bildirishnoma
+    """
     step.status = "rejected"
     step.qc_id = qc_id
     step.qc_comment = reason
@@ -115,6 +145,14 @@ async def reject_step(
     )
 
     await session.flush()
+
+    # ===== Bildirishnoma =====
+    if bot:
+        try:
+            await notify_worker_rejected(bot, session, step)
+        except Exception as e:
+            logger.error(f"❌ Bildirishnoma xatosi (reject): {e}")
+
     return step
 
 
@@ -146,14 +184,12 @@ async def get_qc_stats(
     """QC statistikasi."""
     from sqlalchemy import func
 
-    # Jami
     total_stmt = (
         select(func.count(TruckStep.id))
         .where(TruckStep.qc_id == qc_id)
     )
     total = (await session.execute(total_stmt)).scalar() or 0
 
-    # Approved
     approved_stmt = (
         select(func.count(TruckStep.id))
         .where(TruckStep.qc_id == qc_id)
@@ -161,7 +197,6 @@ async def get_qc_stats(
     )
     approved = (await session.execute(approved_stmt)).scalar() or 0
 
-    # Rejected
     rejected_stmt = (
         select(func.count(TruckStep.id))
         .where(TruckStep.qc_id == qc_id)

@@ -21,6 +21,7 @@ async def get_worker_tasks(
     - Shu ishchining stepidagi
     - `pending` yoki `rejected` holatidagi
     - Truck `in_progress` bo'lgan
+    - **Truck.current_step == step_number** (joriy step)
     """
     stmt = (
         select(TruckStep)
@@ -28,17 +29,16 @@ async def get_worker_tasks(
         .where(TruckStep.step_number == step_number)
         .where(TruckStep.status.in_(["pending", "rejected"]))
         .where(Truck.status == "in_progress")
+        .where(Truck.current_step == step_number)  # ← YANGI SHART
         .options(selectinload(TruckStep.truck))
         .order_by(
-            Truck.priority.desc(),  # urgent birinchi
-            Truck.deadline.asc().nulls_last(),  # yaqin muddat
-            Truck.id.desc(),  # yangilar
+            Truck.priority.desc(),
+            Truck.deadline.asc().nulls_last(),
+            Truck.id.desc(),
         )
     )
     result = await session.execute(stmt)
     return list(result.scalars().all())
-
-
 async def get_step_by_id(
     session: AsyncSession,
     step_id: int,

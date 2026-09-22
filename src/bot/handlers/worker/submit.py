@@ -1,4 +1,7 @@
 """Ishchi — Ish yuborish (FSM)."""
+from uuid import uuid4
+from pathlib import Path
+
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -11,13 +14,13 @@ from src.bot.keyboards import (
     worker_submit_skip_comment_keyboard,
 )
 from src.bot.states import SubmitWorkFSM
+from src.config import settings
 from src.database.models.user import User
 from src.services.truck_step_service import (
     claim_step,
     get_step_with_truck,
     submit_step,
 )
-from src.services.media_service import save_photo, save_video, save_document
 from src.utils.constants import STEP_NAMES
 from src.utils.logger import logger
 
@@ -82,15 +85,8 @@ async def start_submit(
 async def process_photo(
     message: Message,
     state: FSMContext,
-    bot: Bot,
 ):
     """Rasmni qabul qilish."""
-    data = await state.get_data()
-    step_id = data["step_id"]
-
-    # Rasmni saqlash
-    # Avval step ni olish kerak (truck_id va step_number)
-    # Hozircha faqat file_id ni saqlaymiz, keyin confirm da local_path ni saqlaymiz
     await state.update_data(
         media_type="photo",
         media_file_id=message.photo[-1].file_id,
@@ -110,7 +106,6 @@ async def process_photo(
 async def process_video(
     message: Message,
     state: FSMContext,
-    bot: Bot,
 ):
     """Videoni qabul qilish."""
     await state.update_data(
@@ -132,7 +127,6 @@ async def process_video(
 async def process_document(
     message: Message,
     state: FSMContext,
-    bot: Bot,
 ):
     """Hujjatni qabul qilish."""
     await state.update_data(
@@ -197,7 +191,9 @@ async def process_comment(
     await state.update_data(worker_comment=text)
     await state.set_state(SubmitWorkFSM.confirm)
 
-    await _show_submit_confirmation(message, state)
+    # MUHIM: foydalanuvchi yozgan matnni tahrirlab bo'lmaydi
+    # Shuning uchun _show_submit_confirmation ga `use_edit=False` beramiz
+    await _show_submit_confirmation(message, state, use_edit=False)
 
 
 # ==== Tasdiqlash ====
@@ -221,7 +217,7 @@ async def confirm_submit(
         await state.clear()
         return
 
-    # Media ni saqlash (hozir)
+    # Media ni saqlash
     media_type = data["media_type"]
     media_file_id = data["media_file_id"]
     media_local_path = None
@@ -231,10 +227,6 @@ async def confirm_submit(
         file = await bot.get_file(media_file_id)
 
         # Papka
-        from pathlib import Path
-        from src.config import settings
-        from uuid import uuid4
-
         media_dir = Path(settings.MEDIA_ROOT)
         folder = media_dir / "trucks" / str(step.truck_id) / f"step_{step.step_number}"
         folder.mkdir(parents=True, exist_ok=True)
@@ -315,8 +307,16 @@ async def cancel_submit(
 async def _show_submit_confirmation(
     message: Message,
     state: FSMContext,
+    use_edit: bool = True,
 ) -> None:
-    """Tasdiqlash oynasini ko'rsatish."""
+    """Tasdiqlash oynasini ko'rsatish.
+
+    Args:
+        message: Xabar
+        state: FSM kontekst
+        use_edit: True bo'lsa — edit_text ishlatamiz (callback uchun).
+                  False bo'lsa — answer ishlatamiz (yangi matn uchun).
+    """
     data = await state.get_data()
 
     media_type = data.get("media_type", "photo")
@@ -336,7 +336,13 @@ async def _show_submit_confirmation(
         f"<i>Yuborilgandan keyin QC tekshiradi.</i>"
     )
 
-    await message.edit_text(
-        text,
-        reply_markup=worker_submit_confirm_keyboard(),
-    )
+    if use_edit:
+        await message.edit_text(
+            text,
+            reply_markup=worker_submit_confirm_keyboard(),
+        )
+    else:
+        await message.answer(
+            text,
+            reply_markup=worker_submit_confirm_keyboard(),
+        )

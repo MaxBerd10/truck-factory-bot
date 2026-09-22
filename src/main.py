@@ -12,6 +12,7 @@ from src.bot.handlers import setup_handlers
 from src.bot.middlewares.db import DbSessionMiddleware
 from src.bot.middlewares.user import UserMiddleware
 from src.config import settings
+from src.database.session import async_session_maker
 from src.scheduler import setup_scheduler, stop_scheduler
 from src.utils.logger import logger
 
@@ -42,7 +43,7 @@ async def main() -> None:
 
     # Middlewares (tartib muhim!)
     # 1. DB session — eng tashqi
-    dp.update.middleware(DbSessionMiddleware())
+    dp.update.middleware(DbSessionMiddleware(async_session_maker))
     # 2. User — DB dan user ni yuklaydi
     dp.update.middleware(UserMiddleware())
 

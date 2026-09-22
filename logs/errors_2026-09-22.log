@@ -1,0 +1,6 @@
+2026-09-22 13:47:24 | ERROR    | __main__:main:27 | Bu xato testi (ataylab)
+
+2026-09-22 13:53:11 | ERROR    | __main__:main:27 | Bu xato testi (ataylab)
+
+2026-09-22 14:04:51 | ERROR    | __main__:test_connection:26 | ❌ Xato: [Errno -2] Name or service not known
+

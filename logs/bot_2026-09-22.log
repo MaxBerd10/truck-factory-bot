@@ -1,0 +1,144 @@
+2026-09-22 13:47:24 | INFO     | __main__:main:8 | 🚛 Truck Factory Bot ishga tushmoqda...
+2026-09-22 13:47:24 | DEBUG    | __main__:main:10 | Environment: development
+2026-09-22 13:47:24 | INFO     | __main__:main:11 | Bot username: @BAAZ
+2026-09-22 13:47:24 | INFO     | __main__:main:12 | Adminlar soni: 1
+2026-09-22 13:47:24 | INFO     | __main__:main:13 | DB: postgres:5432/truck_factory
+2026-09-22 13:47:24 | INFO     | __main__:main:16 | Media root: /app/media
+2026-09-22 13:47:24 | INFO     | __main__:main:18 | Steplar:
+2026-09-22 13:47:24 | INFO     | __main__:main:20 |   1. 1️⃣ Karkas yig'ish
+2026-09-22 13:47:24 | INFO     | __main__:main:20 |   2. 2️⃣ Bo'yash
+2026-09-22 13:47:24 | INFO     | __main__:main:20 |   3. 3️⃣ Dvigatel o'rnatish
+2026-09-22 13:47:24 | INFO     | __main__:main:20 |   4. 4️⃣ Elektrika
+2026-09-22 13:47:24 | INFO     | __main__:main:20 |   5. 5️⃣ Salon
+2026-09-22 13:47:24 | INFO     | __main__:main:20 |   6. 6️⃣ Yakuniy tekshiruv
+2026-09-22 13:47:24 | INFO     | __main__:main:22 | Rollar:
+2026-09-22 13:47:24 | INFO     | __main__:main:24 |   worker: 👷 Ishchi
+2026-09-22 13:47:24 | INFO     | __main__:main:24 |   qc: 🔍 Sifat nazoratchisi
+2026-09-22 13:47:24 | INFO     | __main__:main:24 |   admin: 👑 Administrator
+2026-09-22 13:47:24 | WARNING  | __main__:main:26 | Bu vaqtinchalik test fayl
+2026-09-22 13:47:24 | ERROR    | __main__:main:27 | Bu xato testi (ataylab)
+2026-09-22 13:47:24 | SUCCESS  | __main__:main:29 | ✅ Config va logger ishlayapti!
+2026-09-22 13:53:11 | INFO     | __main__:main:8 | 🚛 Truck Factory Bot ishga tushmoqda...
+2026-09-22 13:53:11 | DEBUG    | __main__:main:10 | Environment: development
+2026-09-22 13:53:11 | INFO     | __main__:main:11 | Bot username: @BAAZ
+2026-09-22 13:53:11 | INFO     | __main__:main:12 | Adminlar soni: 1
+2026-09-22 13:53:11 | INFO     | __main__:main:13 | DB: postgres:5432/truck_factory
+2026-09-22 13:53:11 | INFO     | __main__:main:16 | Media root: /app/media
+2026-09-22 13:53:11 | INFO     | __main__:main:18 | Steplar:
+2026-09-22 13:53:11 | INFO     | __main__:main:20 |   1. 1️⃣ Karkas
+2026-09-22 13:53:11 | INFO     | __main__:main:20 |   2. 2️⃣ Kuzov o'rnatish
+2026-09-22 13:53:11 | INFO     | __main__:main:20 |   3. 3️⃣ Ichki qoplama
+2026-09-22 13:53:11 | INFO     | __main__:main:20 |   4. 4️⃣ Bo'yash
+2026-09-22 13:53:11 | INFO     | __main__:main:20 |   5. 5️⃣ Eshik-deraza
+2026-09-22 13:53:11 | INFO     | __main__:main:20 |   6. 6️⃣ Yig'ish
+2026-09-22 13:53:11 | INFO     | __main__:main:22 | Rollar:
+2026-09-22 13:53:11 | INFO     | __main__:main:24 |   worker: 👷 Ishchi
+2026-09-22 13:53:11 | INFO     | __main__:main:24 |   qc: 🔍 Sifat nazoratchisi
+2026-09-22 13:53:11 | INFO     | __main__:main:24 |   admin: 👑 Administrator
+2026-09-22 13:53:11 | WARNING  | __main__:main:26 | Bu vaqtinchalik test fayl
+2026-09-22 13:53:11 | ERROR    | __main__:main:27 | Bu xato testi (ataylab)
+2026-09-22 13:53:11 | SUCCESS  | __main__:main:29 | ✅ Config va logger ishlayapti!
+2026-09-22 14:04:47 | INFO     | __main__:test_connection:11 | DB ulanishini sinayapmiz...
+2026-09-22 14:04:51 | ERROR    | __main__:test_connection:26 | ❌ Xato: [Errno -2] Name or service not known
+2026-09-22 14:08:11 | INFO     | __main__:test_connection:11 | DB ulanishini sinayapmiz...
+2026-09-22 14:08:11 | SUCCESS  | __main__:test_connection:16 | ✅ PostgreSQL ulanish OK!
+2026-09-22 14:08:11 | INFO     | __main__:test_connection:17 | Versiya: PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+2026-09-22 14:08:11 | INFO     | __main__:test_connection:21 | Baza: truck_factory
+2026-09-22 14:08:11 | SUCCESS  | __main__:test_connection:24 | ✅ Test tugadi!
+2026-09-22 14:18:26 | INFO     | __main__:main:16 | 🚛 Truck Factory Bot ishga tushmoqda...
+2026-09-22 14:18:26 | INFO     | __main__:main:17 | Bot: @baaztrucksbot
+2026-09-22 14:18:26 | INFO     | __main__:main:18 | Adminlar: [5317974776]
+2026-09-22 14:18:26 | INFO     | __main__:main:19 | Environment: development
+2026-09-22 14:18:26 | SUCCESS  | __main__:main:50 | ✅ Bot polling boshlandi. Telegramda /start bosing.
+2026-09-22 14:18:49 | DEBUG    | src.bot.middlewares.user:__call__:48 | 👤 User topilmadi: telegram_id=5317974776
+2026-09-22 14:26:12 | INFO     | __main__:main:15 | ============================================================
+2026-09-22 14:26:12 | INFO     | __main__:main:16 | 🚛 Truck Factory Bot ishga tushmoqda...
+2026-09-22 14:26:12 | INFO     | __main__:main:17 | Environment: development
+2026-09-22 14:26:12 | INFO     | __main__:main:18 | Bot: @baaztrucksbot
+2026-09-22 14:26:12 | INFO     | __main__:main:19 | Adminlar: 1 ta
+2026-09-22 14:26:12 | INFO     | __main__:main:20 | ============================================================
+2026-09-22 14:26:12 | SUCCESS  | __main__:main:31 | ✅ Bot tasdiqlandi: @baaztrucksbot (id=8827463818)
+2026-09-22 14:26:12 | SUCCESS  | __main__:main:42 | 🚀 Bot polling boshlandi. Telegramda /start bosing.
+2026-09-22 14:26:30 | DEBUG    | src.bot.middlewares.user:__call__:48 | 👤 User topilmadi: telegram_id=5317974776
+2026-09-22 14:26:30 | SUCCESS  | src.services.user_service:create_admin_if_needed:54 | 👑 Yangi admin yaratildi: Max ️ (@MaxBerd10), telegram_id=5317974776
+2026-09-22 14:27:06 | INFO     | __main__:main:52 | Bot to'xtatildi.
+2026-09-22 14:35:05 | INFO     | __main__:main:15 | ============================================================
+2026-09-22 14:35:05 | INFO     | __main__:main:16 | 🚛 Truck Factory Bot ishga tushmoqda...
+2026-09-22 14:35:05 | INFO     | __main__:main:17 | Environment: development
+2026-09-22 14:35:05 | INFO     | __main__:main:18 | Bot: @baaztrucksbot
+2026-09-22 14:35:05 | INFO     | __main__:main:19 | Adminlar: 1 ta
+2026-09-22 14:35:05 | INFO     | __main__:main:20 | ============================================================
+2026-09-22 14:35:08 | SUCCESS  | __main__:main:31 | ✅ Bot tasdiqlandi: @baaztrucksbot (id=8827463818)
+2026-09-22 14:35:08 | SUCCESS  | __main__:main:42 | 🚀 Bot polling boshlandi. Telegramda /start bosing.
+2026-09-22 14:35:42 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:36:00 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:36:34 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:37:01 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:37:04 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:38:02 | INFO     | __main__:main:52 | Bot to'xtatildi.
+2026-09-22 14:41:05 | INFO     | __main__:main:15 | ============================================================
+2026-09-22 14:41:05 | INFO     | __main__:main:16 | 🚛 Truck Factory Bot ishga tushmoqda...
+2026-09-22 14:41:05 | INFO     | __main__:main:17 | Environment: development
+2026-09-22 14:41:05 | INFO     | __main__:main:18 | Bot: @baaztrucksbot
+2026-09-22 14:41:05 | INFO     | __main__:main:19 | Adminlar: 1 ta
+2026-09-22 14:41:05 | INFO     | __main__:main:20 | ============================================================
+2026-09-22 14:41:06 | SUCCESS  | __main__:main:31 | ✅ Bot tasdiqlandi: @baaztrucksbot (id=8827463818)
+2026-09-22 14:41:06 | SUCCESS  | __main__:main:42 | 🚀 Bot polling boshlandi. Telegramda /start bosing.
+2026-09-22 14:45:58 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:46:08 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:46:14 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:46:37 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:46:51 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:46:55 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:47:02 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:47:16 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:48:09 | INFO     | __main__:main:52 | Bot to'xtatildi.
+2026-09-22 14:48:53 | INFO     | __main__:main:15 | ============================================================
+2026-09-22 14:48:53 | INFO     | __main__:main:16 | 🚛 Truck Factory Bot ishga tushmoqda...
+2026-09-22 14:48:53 | INFO     | __main__:main:17 | Environment: development
+2026-09-22 14:48:53 | INFO     | __main__:main:18 | Bot: @baaztrucksbot
+2026-09-22 14:48:53 | INFO     | __main__:main:19 | Adminlar: 1 ta
+2026-09-22 14:48:53 | INFO     | __main__:main:20 | ============================================================
+2026-09-22 14:48:54 | SUCCESS  | __main__:main:31 | ✅ Bot tasdiqlandi: @baaztrucksbot (id=8827463818)
+2026-09-22 14:48:54 | SUCCESS  | __main__:main:42 | 🚀 Bot polling boshlandi. Telegramda /start bosing.
+2026-09-22 14:49:05 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:49:10 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:49:12 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:49:19 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:49:25 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:49:29 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:49:31 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:49:40 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:49:49 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:49:49 | SUCCESS  | src.services.user_service:create_user_from_invite:84 | 👤 Yangi user yaratildi: Test User (@None), role=worker, step=3
+2026-09-22 14:50:21 | INFO     | __main__:main:52 | Bot to'xtatildi.
+2026-09-22 14:50:52 | INFO     | __main__:main:15 | ============================================================
+2026-09-22 14:50:52 | INFO     | __main__:main:16 | 🚛 Truck Factory Bot ishga tushmoqda...
+2026-09-22 14:50:52 | INFO     | __main__:main:17 | Environment: development
+2026-09-22 14:50:52 | INFO     | __main__:main:18 | Bot: @baaztrucksbot
+2026-09-22 14:50:52 | INFO     | __main__:main:19 | Adminlar: 1 ta
+2026-09-22 14:50:52 | INFO     | __main__:main:20 | ============================================================
+2026-09-22 14:50:52 | SUCCESS  | __main__:main:31 | ✅ Bot tasdiqlandi: @baaztrucksbot (id=8827463818)
+2026-09-22 14:50:52 | SUCCESS  | __main__:main:42 | 🚀 Bot polling boshlandi. Telegramda /start bosing.
+2026-09-22 14:50:57 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:51:00 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:51:07 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:51:20 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:52:07 | INFO     | __main__:main:52 | Bot to'xtatildi.
+2026-09-22 14:52:43 | INFO     | __main__:main:15 | ============================================================
+2026-09-22 14:52:43 | INFO     | __main__:main:16 | 🚛 Truck Factory Bot ishga tushmoqda...
+2026-09-22 14:52:43 | INFO     | __main__:main:17 | Environment: development
+2026-09-22 14:52:43 | INFO     | __main__:main:18 | Bot: @baaztrucksbot
+2026-09-22 14:52:43 | INFO     | __main__:main:19 | Adminlar: 1 ta
+2026-09-22 14:52:43 | INFO     | __main__:main:20 | ============================================================
+2026-09-22 14:52:43 | SUCCESS  | __main__:main:31 | ✅ Bot tasdiqlandi: @baaztrucksbot (id=8827463818)
+2026-09-22 14:52:43 | SUCCESS  | __main__:main:42 | 🚀 Bot polling boshlandi. Telegramda /start bosing.
+2026-09-22 14:53:17 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:53:22 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:53:25 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:53:25 | INFO     | src.bot.handlers.admin.users:block_user:217 | 🚫 User bloklandi: Test User (id=2) tomonidan Max ️
+2026-09-22 14:53:34 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:53:34 | INFO     | src.bot.handlers.admin.users:unblock_user:270 | ✅ User aktivlashtirildi: Test User (id=2) tomonidan Max ️
+2026-09-22 14:53:48 | DEBUG    | src.bot.middlewares.user:__call__:43 | 👤 User topildi: Max ️ (role=admin, step=None, active=True)
+2026-09-22 14:53:48 | INFO     | src.bot.handlers.admin.users:block_user:217 | 🚫 User bloklandi: Test User (id=2) tomonidan Max ️
+2026-09-22 15:14:15 | INFO     | __main__:main:52 | Bot to'xtatildi.

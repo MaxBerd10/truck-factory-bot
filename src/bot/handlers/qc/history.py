@@ -7,10 +7,11 @@ from src.bot.filters import IsQC
 from src.bot.keyboards import (
     qc_history_detail_keyboard,
     qc_history_keyboard,
-    qc_review_keyboard,
 )
 from src.database.models.user import User
-from src.services.qc_service import get_qc_history, get_step_for_review
+from src.services.qc_service import get_qc_history
+from src.services.stats_service import get_qc_full_stats
+from src.services.qc_service import get_step_for_review
 from src.utils.constants import (
     PRIORITY_NAMES,
     STEP_NAMES,
@@ -63,7 +64,6 @@ async def view_history_detail(
     priority_name = PRIORITY_NAMES.get(truck.priority, truck.priority)
     step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
 
-    # Status
     if step.is_approved:
         status_text = "✅ Tasdiqlangan"
     elif step.is_rejected:
@@ -94,16 +94,14 @@ async def view_history_detail(
             f"{step.reviewed_at.strftime('%Y-%m-%d %H:%M')}"
         )
 
-    # Media
     if step.media_type == "photo" and step.media_file_id:
         await callback.message.answer_photo(
             photo=step.media_file_id,
             caption=text,
             reply_markup=qc_history_detail_keyboard(),
         )
-        await callback.message.delete()
     else:
-        await callback.message.edit_text(
+        await callback.message.answer(
             text,
             reply_markup=qc_history_detail_keyboard(),
         )
@@ -116,9 +114,10 @@ async def _send_history(
     session: AsyncSession,
 ) -> None:
     """Tarixni yuborish."""
+    stats = await get_qc_full_stats(session, user.id)
     history = await get_qc_history(session, user.id)
 
-    if not history:
+    if stats["total"] == 0:
         await message.answer(
             "📜 <b>Tarixim</b>\n\n"
             "Hozircha tarix bo'sh.\n\n"
@@ -126,16 +125,14 @@ async def _send_history(
         )
         return
 
-    # Statistika
-    approved = sum(1 for h in history if h.is_approved)
-    rejected = sum(1 for h in history if h.is_rejected)
-
     text = (
         f"📜 <b>Tarixim</b>\n\n"
-        f"📊 Jami: <b>{len(history)}</b> ta\n"
-        f"✅ Tasdiqlangan: {approved}\n"
-        f"❌ Rad etilgan: {rejected}\n\n"
-        f"Batafsil ko'rish uchun tanlang:"
+        f"📊 <b>Statistika:</b>\n"
+        f"  • Jami tekshirilgan: <b>{stats['total']}</b>\n"
+        f"  • ✅ Tasdiqlangan: <b>{stats['approved']}</b>\n"
+        f"  • ❌ Rad etilgan: <b>{stats['rejected']}</b>\n"
+        f"  • 📈 Tasdiqlash foizi: <b>{stats['approve_rate']}%</b>\n\n"
+        f"📋 <b>Oxirgi tekshirishlar:</b>"
     )
 
     await message.answer(
@@ -150,27 +147,39 @@ async def _edit_history(
     session: AsyncSession,
 ) -> None:
     """Tarixni tahrirlash."""
+    stats = await get_qc_full_stats(session, user.id)
     history = await get_qc_history(session, user.id)
 
-    if not history:
-        await callback.message.edit_text(
-            "📜 <b>Tarixim</b>\n\n"
-            "Hozircha tarix bo'sh.",
-        )
+    if stats["total"] == 0:
+        try:
+            await callback.message.edit_text(
+                "📜 <b>Tarixim</b>\n\n"
+                "Hozircha tarix bo'sh.",
+            )
+        except Exception:
+            await callback.message.answer(
+                "📜 <b>Tarixim</b>\n\n"
+                "Hozircha tarix bo'sh.",
+            )
         return
-
-    approved = sum(1 for h in history if h.is_approved)
-    rejected = sum(1 for h in history if h.is_rejected)
 
     text = (
         f"📜 <b>Tarixim</b>\n\n"
-        f"📊 Jami: <b>{len(history)}</b> ta\n"
-        f"✅ Tasdiqlangan: {approved}\n"
-        f"❌ Rad etilgan: {rejected}\n\n"
-        f"Batafsil ko'rish uchun tanlang:"
+        f"📊 <b>Statistika:</b>\n"
+        f"  • Jami tekshirilgan: <b>{stats['total']}</b>\n"
+        f"  • ✅ Tasdiqlangan: <b>{stats['approved']}</b>\n"
+        f"  • ❌ Rad etilgan: <b>{stats['rejected']}</b>\n"
+        f"  • 📈 Tasdiqlash foizi: <b>{stats['approve_rate']}%</b>\n\n"
+        f"📋 <b>Oxirgi tekshirishlar:</b>"
     )
 
-    await callback.message.edit_text(
-        text,
-        reply_markup=qc_history_keyboard(history),
-    )
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=qc_history_keyboard(history),
+        )
+    except Exception:
+        await callback.message.answer(
+            text,
+            reply_markup=qc_history_keyboard(history),
+        )

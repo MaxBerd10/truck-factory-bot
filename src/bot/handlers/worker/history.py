@@ -7,6 +7,7 @@ from src.bot.filters import IsWorker
 from src.bot.keyboards import worker_history_keyboard
 from src.database.models.user import User
 from src.services.truck_step_service import get_worker_history
+from src.services.stats_service import get_worker_full_stats
 from src.utils.constants import STEP_NAMES
 
 
@@ -21,9 +22,32 @@ async def show_history(
     session: AsyncSession,
 ):
     """Ishchining tarixini ko'rsatish."""
+    await _send_history(message, user, session)
+
+
+# ==== Yangilash ====
+@router.callback_query(IsWorker(), F.data == "worker_history")
+async def refresh_history(
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+):
+    """Tarixni yangilash."""
+    await callback.answer()
+    await _edit_history(callback, user, session)
+
+
+# ==== Yordamchi ====
+async def _send_history(
+    message: Message,
+    user: User,
+    session: AsyncSession,
+) -> None:
+    """Tarixni yuborish."""
+    stats = await get_worker_full_stats(session, user.id)
     history = await get_worker_history(session, user.id)
 
-    if not history:
+    if stats["total"] == 0:
         await message.answer(
             "📜 <b>Tarixim</b>\n\n"
             "Hozircha tarix bo'sh.\n\n"
@@ -33,8 +57,13 @@ async def show_history(
 
     text = (
         f"📜 <b>Tarixim</b>\n\n"
-        f"Jami: <b>{len(history)}</b> ta ish\n\n"
-        f"Batafsil ko'rish uchun tanlang:"
+        f"📊 <b>Statistika:</b>\n"
+        f"  • Jami: <b>{stats['total']}</b>\n"
+        f"  • ✅ Tasdiqlangan: <b>{stats['approved']}</b>\n"
+        f"  • 🔍 Tekshirilmoqda: <b>{stats['in_review']}</b>\n"
+        f"  • ❌ Rad etilgan: <b>{stats['rejected']}</b>\n"
+        f"  • 📈 Muvaffaqiyat: <b>{stats['success_rate']}%</b>\n\n"
+        f"📋 <b>Oxirgi ishlar:</b>"
     )
 
     await message.answer(
@@ -43,32 +72,46 @@ async def show_history(
     )
 
 
-# ==== Tarixni yangilash ====
-@router.callback_query(IsWorker(), F.data == "worker_history")
-async def refresh_history(
+async def _edit_history(
     callback: CallbackQuery,
     user: User,
     session: AsyncSession,
-):
-    """Tarixni yangilash."""
-    await callback.answer()
-
+) -> None:
+    """Tarixni tahrirlash."""
+    stats = await get_worker_full_stats(session, user.id)
     history = await get_worker_history(session, user.id)
 
-    if not history:
-        await callback.message.edit_text(
-            "📜 <b>Tarixim</b>\n\n"
-            "Hozircha tarix bo'sh.",
-        )
+    if stats["total"] == 0:
+        try:
+            await callback.message.edit_text(
+                "📜 <b>Tarixim</b>\n\n"
+                "Hozircha tarix bo'sh.",
+            )
+        except Exception:
+            await callback.message.answer(
+                "📜 <b>Tarixim</b>\n\n"
+                "Hozircha tarix bo'sh.",
+            )
         return
 
     text = (
         f"📜 <b>Tarixim</b>\n\n"
-        f"Jami: <b>{len(history)}</b> ta ish\n\n"
-        f"Batafsil ko'rish uchun tanlang:"
+        f"📊 <b>Statistika:</b>\n"
+        f"  • Jami: <b>{stats['total']}</b>\n"
+        f"  • ✅ Tasdiqlangan: <b>{stats['approved']}</b>\n"
+        f"  • 🔍 Tekshirilmoqda: <b>{stats['in_review']}</b>\n"
+        f"  • ❌ Rad etilgan: <b>{stats['rejected']}</b>\n"
+        f"  • 📈 Muvaffaqiyat: <b>{stats['success_rate']}%</b>\n\n"
+        f"📋 <b>Oxirgi ishlar:</b>"
     )
 
-    await callback.message.edit_text(
-        text,
-        reply_markup=worker_history_keyboard(history),
-    )
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=worker_history_keyboard(history),
+        )
+    except Exception:
+        await callback.message.answer(
+            text,
+            reply_markup=worker_history_keyboard(history),
+        )

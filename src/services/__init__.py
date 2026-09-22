@@ -1,4 +1,12 @@
 """Services."""
+from src.services.stats_service import (
+    get_admin_stats,
+    get_qc_full_stats,
+    get_worker_full_stats,
+)
+
+
+
 from src.services.notification_service import (
     notify_admin_truck_completed,
     notify_next_worker,
@@ -99,4 +107,10 @@ __all__ = [
     "notify_worker_rejected",
     "notify_next_worker",
     "notify_admin_truck_completed",
+
+    # Stats
+    "get_admin_stats",
+    "get_worker_full_stats",
+    "get_qc_full_stats",
+
 ]

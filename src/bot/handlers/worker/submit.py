@@ -41,20 +41,27 @@ async def start_submit(
     step_id = int(callback.data.split(":")[1])
 
     step = await get_step_with_truck(session, step_id)
+
     if not step:
-        await callback.answer("❌ Vazifa topilmadi", show_alert=True)
+        await callback.answer(
+            "⚠️ Vazifa topilmadi\n\n"
+            "Iltimos, \"📋 Vazifalarim\" ni yangilang.",
+            show_alert=True,
+        )
         return
 
     if step.step_number != user.step_number:
         await callback.answer(
-            "❌ Bu sizning stepingiz emas",
+            "⚠️ Bu sizning stepingiz emas\n\n"
+            "Siz faqat o'z bo'limingizdagi ishlarni yuborishingiz mumkin.",
             show_alert=True,
         )
         return
 
     if step.status not in ["pending", "rejected"]:
         await callback.answer(
-            "❌ Bu vazifa allaqachon yuborilgan",
+            "⚠️ Bu vazifa allaqachon yuborilgan\n\n"
+            "Holatni \"📋 Vazifalarim\" da ko'rishingiz mumkin.",
             show_alert=True,
         )
         return
@@ -92,9 +99,9 @@ async def process_photo(
     await state.set_state(SubmitWorkFSM.comment)
 
     await message.answer(
-        "✅ Rasm qabul qilindi.\n\n"
+        "✅ <b>Rasm qabul qilindi.</b>\n\n"
         "📝 <b>Izoh qo'shing</b> (ixtiyoriy):\n\n"
-        "<i>Masalan: Ichki qoplama tayyor</i>",
+        "<i>Masalan: Ichki qoplama tayyor, sifatli</i>",
         reply_markup=worker_submit_skip_comment_keyboard(),
     )
 
@@ -113,9 +120,9 @@ async def process_video(
     await state.set_state(SubmitWorkFSM.comment)
 
     await message.answer(
-        "✅ Video qabul qilindi.\n\n"
+        "✅ <b>Video qabul qilindi.</b>\n\n"
         "📝 <b>Izoh qo'shing</b> (ixtiyoriy):\n\n"
-        "<i>Masalan: Ichki qoplama tayyor</i>",
+        "<i>Masalan: Ichki qoplama tayyor, sifatli</i>",
         reply_markup=worker_submit_skip_comment_keyboard(),
     )
 
@@ -134,7 +141,7 @@ async def process_document(
     await state.set_state(SubmitWorkFSM.comment)
 
     await message.answer(
-        "✅ Hujjat qabul qilindi.\n\n"
+        "✅ <b>Hujjat qabul qilindi.</b>\n\n"
         "📝 <b>Izoh qo'shing</b> (ixtiyoriy):",
         reply_markup=worker_submit_skip_comment_keyboard(),
     )
@@ -148,8 +155,10 @@ async def invalid_media(
 ):
     """Noto'g'ri media turi."""
     await message.answer(
-        "❌ <b>Xato!</b>\n\n"
-        "Iltimos, <b>rasm</b>, <b>video</b> yoki <b>hujjat</b> yuboring.\n\n"
+        "⚠️ <b>Faqat rasm, video yoki hujjat yuboring</b>\n\n"
+        "📷 Rasm — kamera yoki galereyadan\n"
+        "🎥 Video — 30 sekundgacha\n"
+        "📄 Hujjat — PDF, Word va boshqalar\n\n"
         "Qaytadan urinib ko'ring:",
         reply_markup=worker_submit_cancel_keyboard(),
     )
@@ -180,8 +189,10 @@ async def process_comment(
 
     if len(text) > 1000:
         await message.answer(
-            "❌ Izoh 1000 belgidan oshmasligi kerak.\n"
-            "Qaytadan kiriting yoki o'tkazib yuboring:",
+            "⚠️ <b>Izoh juda uzun</b>\n\n"
+            f"Sizning izohingiz: {len(text)} belgi\n"
+            f"Maksimal: 1000 belgi\n\n"
+            "Qisqartirib qaytadan yuboring:",
             reply_markup=worker_submit_skip_comment_keyboard(),
         )
         return
@@ -286,7 +297,8 @@ async def confirm_submit(
         f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
         f"🔧 Step: <b>{step_name}</b>\n\n"
         f"📊 Holat: <b>🔍 QC tekshiruvida</b>\n\n"
-        f"<i>Sifat nazoratchisi tekshirib, tasdiqlaydi yoki rad etadi.</i>",
+        f"💡 <i>Sifat nazoratchisi tekshirib, tasdiqlaydi yoki rad etadi. "
+        f"Natijani \"📋 Vazifalarim\" da ko'rasiz.</i>",
         reply_markup=worker_after_submit_keyboard(),
     )
 
@@ -339,14 +351,17 @@ async def _show_submit_confirmation(
         "document": "📄 Hujjat",
     }.get(media_type, "📎 Fayl")
 
-    comment = data.get("worker_comment") or "—"
+    comment = data.get("worker_comment")
+    comment_text = comment if comment else "<i>— yo'q —</i>"
 
     text = (
         f"📋 <b>Tasdiqlash</b>\n\n"
-        f"📎 Media: {media_icon}\n"
-        f"📝 Izoh: {comment}\n\n"
+        f"📎 <b>Media:</b> {media_icon}\n"
+        f"📝 <b>Izoh:</b> {comment_text}\n\n"
+        f"━━━━━━━━━━━━━━━━━━\n\n"
         f"<b>Ishni yuborishni tasdiqlaysizmi?</b>\n\n"
-        f"<i>Yuborilgandan keyin QC tekshiradi.</i>"
+        f"💡 <i>Yuborilgandan keyin QC tekshiradi. "
+        f"Natijani \"📋 Vazifalarim\" da ko'rasiz.</i>"
     )
 
     if use_edit:

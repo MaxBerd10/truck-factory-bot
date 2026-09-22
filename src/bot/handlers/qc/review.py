@@ -45,12 +45,17 @@ async def view_for_review(
     step = await get_step_for_review(session, step_id)
 
     if not step:
-        await callback.answer("❌ Ish topilmadi", show_alert=True)
+        await callback.answer(
+            "⚠️ Ish topilmadi\n\n"
+            "Navbatni yangilang.",
+            show_alert=True,
+        )
         return
 
     if step.status != "in_review":
         await callback.answer(
-            "⚠️ Bu ish allaqachon tekshirilgan",
+            "⚠️ Bu ish allaqachon tekshirilgan\n\n"
+            "Boshqa ishni tanlang.",
             show_alert=True,
         )
         return
@@ -70,15 +75,20 @@ async def ask_approve(
     step = await get_step_for_review(session, step_id)
 
     if not step or step.status != "in_review":
-        await callback.answer("❌ Xato", show_alert=True)
+        await callback.answer(
+            "⚠️ Bu ish allaqachon tekshirilgan",
+            show_alert=True,
+        )
         return
 
     await callback.answer()
 
+    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
+
     text = (
         f"✅ <b>Tasdiqlash</b>\n\n"
         f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
-        f"🔧 Step: <b>{STEP_NAMES.get(step.step_number, step.step_number)}</b>\n\n"
+        f"🔧 Step: <b>{step_name}</b>\n\n"
         f"<b>Ishni tasdiqlaysizmi?</b>\n\n"
     )
 
@@ -122,7 +132,8 @@ async def confirm_approve(
             f"🚛 <b>{truck.serial_number}</b>\n"
             f"🏭 {truck.model or '—'}\n"
             f"👤 {truck.customer or '—'}\n\n"
-            f"✅ Barcha 6 ta step tasdiqlandi!"
+            f"✅ Barcha 6 ta step tasdiqlandi!\n\n"
+            f"💡 <i>Buyurtmachi bilan bog'lanishingiz mumkin.</i>"
         )
     else:
         next_step_name = STEP_NAMES.get(
@@ -133,7 +144,7 @@ async def confirm_approve(
             f"🚛 {truck.serial_number}\n"
             f"🔧 {step_name} ✅\n\n"
             f"📍 Keyingi step: <b>{next_step_name}</b>\n\n"
-            f"<i>Endi keyingi step ishchisi ishlashi mumkin.</i>"
+            f"💡 <i>Endi keyingi step ishchisi ishlashi mumkin.</i>"
         )
 
     # Tugmalar bilan yuboramiz
@@ -155,7 +166,10 @@ async def ask_reject(
     step = await get_step_for_review(session, step_id)
 
     if not step or step.status != "in_review":
-        await callback.answer("❌ Xato", show_alert=True)
+        await callback.answer(
+            "⚠️ Bu ish allaqachon tekshirilgan",
+            show_alert=True,
+        )
         return
 
     await callback.answer()
@@ -164,12 +178,15 @@ async def ask_reject(
     await state.update_data(step_id=step_id)
     await state.set_state(RejectStepFSM.reason)
 
+    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
+
     await callback.message.answer(
         f"❌ <b>Rad etish</b>\n\n"
         f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
-        f"🔧 Step: <b>{STEP_NAMES.get(step.step_number, step.step_number)}</b>\n\n"
+        f"🔧 Step: <b>{step_name}</b>\n\n"
         f"📝 <b>Rad etish sababini yozing:</b>\n\n"
-        f"<i>Masalan: Rasm sifati past, qayta yuboring</i>",
+        f"<i>Masalan: Rasm sifati past, qayta yuboring</i>\n\n"
+        f"💡 <i>Ishchi sababni ko'radi va qayta yuborishi mumkin.</i>",
         reply_markup=qc_reject_cancel_keyboard(),
     )
 
@@ -185,18 +202,20 @@ async def process_reject_reason(
 
     if len(text) < 5:
         await message.answer(
-            "❌ <b>Juda qisqa!</b>\n\n"
-            "Sabab kamida 5 belgidan iborat bo'lishi kerak.\n"
-            "Qaytadan kiriting:",
+            "⚠️ <b>Sabab juda qisqa</b>\n\n"
+            f"Sizning sababingiz: {len(text)} belgi\n"
+            f"Minimal: 5 belgi\n\n"
+            "Batafsilroq yozing:",
             reply_markup=qc_reject_cancel_keyboard(),
         )
         return
 
     if len(text) > 500:
         await message.answer(
-            "❌ <b>Juda uzun!</b>\n\n"
-            "Sabab 500 belgidan oshmasligi kerak.\n"
-            "Qaytadan kiriting:",
+            "⚠️ <b>Sabab juda uzun</b>\n\n"
+            f"Sizning sababingiz: {len(text)} belgi\n"
+            f"Maksimal: 500 belgi\n\n"
+            "Qisqartirib qaytadan yuboring:",
             reply_markup=qc_reject_cancel_keyboard(),
         )
         return
@@ -208,7 +227,8 @@ async def process_reject_reason(
     await message.answer(
         f"❌ <b>Rad etishni tasdiqlang</b>\n\n"
         f"📝 Sabab: <i>{text}</i>\n\n"
-        f"<b>Rostdan ham rad etmoqchimisiz?</b>",
+        f"<b>Rostdan ham rad etmoqchimisiz?</b>\n\n"
+        f"💡 <i>Ishchi sababni ko'radi va qayta yuborishi mumkin.</i>",
         reply_markup=qc_reject_confirm_keyboard(step_id),
     )
 
@@ -250,7 +270,7 @@ async def confirm_reject(
         f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
         f"🔧 Step: <b>{step_name}</b>\n\n"
         f"📝 Sabab: <i>{reason}</i>\n\n"
-        f"<i>Ishchiga xabar yuborildi, qayta yuborishi mumkin.</i>"
+        f"💡 <i>Ishchiga xabar yuborildi, qayta yuborishi mumkin.</i>"
     )
 
     # Tugmalar bilan yuboramiz
@@ -275,7 +295,8 @@ async def restart_reject(
     await state.set_state(RejectStepFSM.reason)
 
     await callback.message.answer(
-        "📝 <b>Rad etish sababini yozing:</b>",
+        "📝 <b>Rad etish sababini yozing:</b>\n\n"
+        "<i>Kamida 5, ko'pi bilan 500 belgi.</i>",
         reply_markup=qc_reject_cancel_keyboard(),
     )
 
@@ -299,15 +320,16 @@ async def cancel_reject(
 
     if not steps:
         await callback.message.answer(
-            "🔔 <b>Tekshirish navbati</b>\n\n"
-            "✅ Navbat bo'sh.",
+            "🎉 <b>Navbat bo'sh!</b>\n\n"
+            "✅ Barcha ishlar tekshirilgan.",
             reply_markup=qc_after_action_keyboard(),
         )
         return
 
     await callback.message.answer(
         f"🔔 <b>Tekshirish navbati</b>\n\n"
-        f"📊 Jami: <b>{len(steps)}</b> ta ish",
+        f"📊 Jami: <b>{len(steps)}</b> ta ish\n\n"
+        f"👇 Tekshirish uchun ishni tanlang:",
         reply_markup=qc_queue_keyboard(steps),
     )
 

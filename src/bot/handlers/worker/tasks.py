@@ -118,7 +118,7 @@ async def _send_tasks(
     session: AsyncSession,
 ) -> None:
     """Vazifalar ro'yxatini yuborish."""
-    tasks = await get_worker_tasks(session, user.id)
+    tasks = await get_worker_tasks(session, user.id, user.step_number)
 
     step_name = STEP_NAMES.get(user.step_number, f"Step {user.step_number}")
 
@@ -162,7 +162,7 @@ async def _edit_tasks(
     session: AsyncSession,
 ) -> None:
     """Vazifalar ro'yxatini tahrirlash."""
-    tasks = await get_worker_tasks(session, user.id)
+    tasks = await get_worker_tasks(session, user.id, user.step_number)
 
     step_name = STEP_NAMES.get(user.step_number, f"Step {user.step_number}")
 

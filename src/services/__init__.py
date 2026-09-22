@@ -1,4 +1,16 @@
 """Services."""
+from src.services.qc_service import (
+    approve_step,
+    get_qc_history,
+    get_qc_queue,
+    get_qc_stats,
+    get_queue_count,
+    get_step_for_review,
+    reject_step,
+)
+
+
+
 from src.services.media_service import (
     save_document,
     save_photo,
@@ -60,4 +72,14 @@ __all__ = [
     "save_photo",
     "save_video",
     "save_document",
+
+
+    # QC
+    "get_qc_queue",
+    "get_step_for_review",
+    "approve_step",
+    "reject_step",
+    "get_qc_history",
+    "get_qc_stats",
+    "get_queue_count",
 ]

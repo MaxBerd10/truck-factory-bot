@@ -17,6 +17,10 @@ from src.bot.keyboards.invite import (
     invite_step_keyboard,
     invites_list_keyboard,
 )
+from src.bot.keyboards.registration import (
+    registration_confirm_keyboard,
+    registration_skip_phone_keyboard,
+)
 from src.bot.keyboards.reply import (
     BTN_BACK,
     BTN_CANCEL,
@@ -54,4 +58,6 @@ __all__ = [
     "invite_max_uses_keyboard",
     "invite_confirm_keyboard",
     "invite_detail_keyboard",
+    "registration_skip_phone_keyboard",
+    "registration_confirm_keyboard",
 ]

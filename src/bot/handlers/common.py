@@ -14,7 +14,7 @@ router = Router(name="common")
 
 
 # ==== /start ====
-@router.message(CommandStart())
+@router.message(CommandStart(deep_link=False))
 async def cmd_start(
     message: Message,
     user: User | None,
@@ -52,7 +52,6 @@ async def cmd_start(
         "Agar sizda <b>taklif havolasi</b> bo'lsa, uni bosing.",
         reply_markup=None,
     )
-
 
 # ==== /help ====
 @router.message(Command("help"))

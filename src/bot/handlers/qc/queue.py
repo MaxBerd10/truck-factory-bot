@@ -5,8 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.filters import IsQC
 from src.bot.keyboards import qc_queue_keyboard
-from src.database.models.user import User
-from src.services.qc_service import get_qc_queue, get_queue_count
+from src.services.qc_service import get_qc_queue
 
 
 router = Router(name="qc_queue")
@@ -65,15 +64,22 @@ async def _edit_queue(
     callback: CallbackQuery,
     session: AsyncSession,
 ) -> None:
-    """Mavjud xabarni tahrirlab, navbatni yangilash."""
+    """Mavjud xabarni tahrirlab, navbatni yangilash.
+
+    Agar xabar edit qilib bo'lmasa (rasm bilan), yangi xabar yuboramiz.
+    """
     steps = await get_qc_queue(session)
 
     if not steps:
-        await callback.message.edit_text(
+        text = (
             "🔔 <b>Tekshirish navbati</b>\n\n"
             "✅ Navbat bo'sh.\n\n"
-            "<i>Yangi ishlar kelganda sizga xabar beramiz.</i>",
+            "<i>Yangi ishlar kelganda sizga xabar beramiz.</i>"
         )
+        try:
+            await callback.message.edit_text(text)
+        except Exception:
+            await callback.message.answer(text)
         return
 
     text = (
@@ -82,7 +88,14 @@ async def _edit_queue(
         f"Tekshirish uchun ishni tanlang:"
     )
 
-    await callback.message.edit_text(
-        text,
-        reply_markup=qc_queue_keyboard(steps),
-    )
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=qc_queue_keyboard(steps),
+        )
+    except Exception:
+        # Rasmli xabar yoki edit qilib bo'lmaydigan xabar
+        await callback.message.answer(
+            text,
+            reply_markup=qc_queue_keyboard(steps),
+        )

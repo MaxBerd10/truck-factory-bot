@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.bot.filters import IsQC
 from src.bot.keyboards import (
     qc_approve_confirm_keyboard,
+    qc_queue_keyboard,
     qc_reject_cancel_keyboard,
     qc_reject_confirm_keyboard,
     qc_review_keyboard,
@@ -15,6 +16,7 @@ from src.bot.states import RejectStepFSM
 from src.database.models.user import User
 from src.services.qc_service import (
     approve_step,
+    get_qc_queue,
     get_step_for_review,
     reject_step,
 )
@@ -80,15 +82,12 @@ async def ask_approve(
     )
 
     if step.step_number < 6:
-        text += (
-            f"<i>Shundan keyin truck keyingi stepga o'tadi.</i>"
-        )
+        text += "<i>Shundan keyin truck keyingi stepga o'tadi.</i>"
     else:
-        text += (
-            f"<i>Bu oxirgi step — truck TAYYOR bo'ladi!</i>"
-        )
+        text += "<i>Bu oxirgi step — truck TAYYOR bo'ladi!</i>"
 
-    await callback.message.edit_text(
+    # Rasmli xabarni edit_text qilib bo'lmaydi — yangi xabar yuboramiz
+    await callback.message.answer(
         text,
         reply_markup=qc_approve_confirm_keyboard(step_id),
     )
@@ -114,7 +113,6 @@ async def confirm_approve(
 
     await callback.answer("✅ Tasdiqlandi", show_alert=False)
 
-    # Xabar
     step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
 
     if truck.is_completed:
@@ -137,7 +135,7 @@ async def confirm_approve(
             f"<i>Endi keyingi step ishchisi ishlashi mumkin.</i>"
         )
 
-    await callback.message.edit_text(text)
+    await callback.message.answer(text)
 
 
 # ==== Reject — sabab so'rash ====
@@ -161,7 +159,7 @@ async def ask_reject(
     await state.update_data(step_id=step_id)
     await state.set_state(RejectStepFSM.reason)
 
-    await callback.message.edit_text(
+    await callback.message.answer(
         f"❌ <b>Rad etish</b>\n\n"
         f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
         f"🔧 Step: <b>{STEP_NAMES.get(step.step_number, step.step_number)}</b>\n\n"
@@ -250,7 +248,7 @@ async def confirm_reject(
         f"<i>Ishchiga xabar yuborildi, qayta yuborishi mumkin.</i>"
     )
 
-    await callback.message.edit_text(text)
+    await callback.message.answer(text)
 
 
 # ==== Reject — restart ====
@@ -267,7 +265,7 @@ async def restart_reject(
     await state.update_data(step_id=step_id)
     await state.set_state(RejectStepFSM.reason)
 
-    await callback.message.edit_text(
+    await callback.message.answer(
         "📝 <b>Rad etish sababini yozing:</b>",
         reply_markup=qc_reject_cancel_keyboard(),
     )
@@ -290,23 +288,34 @@ async def cancel_reject(
     if step_id:
         step = await get_step_for_review(session, step_id)
         if step and step.status == "in_review":
-            await _send_review(callback, step)
+            # Navbatga qaytamiz
+            steps = await get_qc_queue(session)
+
+            if not steps:
+                await callback.message.answer(
+                    "🔔 <b>Tekshirish navbati</b>\n\n"
+                    "✅ Navbat bo'sh."
+                )
+                return
+
+            await callback.message.answer(
+                f"🔔 <b>Tekshirish navbati</b>\n\n"
+                f"📊 Jami: <b>{len(steps)}</b> ta ish",
+                reply_markup=qc_queue_keyboard(steps),
+            )
             return
 
     # Navbatga qaytish
-    from src.services.qc_service import get_qc_queue
-    from src.bot.keyboards import qc_queue_keyboard
-
     steps = await get_qc_queue(session)
 
     if not steps:
-        await callback.message.edit_text(
+        await callback.message.answer(
             "🔔 <b>Tekshirish navbati</b>\n\n"
             "✅ Navbat bo'sh."
         )
         return
 
-    await callback.message.edit_text(
+    await callback.message.answer(
         f"🔔 <b>Tekshirish navbati</b>\n\n"
         f"📊 Jami: <b>{len(steps)}</b> ta ish",
         reply_markup=qc_queue_keyboard(steps),
@@ -359,23 +368,21 @@ async def _send_review(callback: CallbackQuery, step) -> None:
             caption=text,
             reply_markup=qc_review_keyboard(step.id),
         )
-        await callback.message.delete()
     elif step.media_type == "video" and step.media_file_id:
         await callback.message.answer_video(
             video=step.media_file_id,
             caption=text,
             reply_markup=qc_review_keyboard(step.id),
         )
-        await callback.message.delete()
     elif step.media_type == "document" and step.media_file_id:
         await callback.message.answer_document(
             document=step.media_file_id,
             caption=text,
             reply_markup=qc_review_keyboard(step.id),
         )
-        await callback.message.delete()
     else:
-        await callback.message.edit_text(
+        # Media yo'q — oddiy xabar
+        await callback.message.answer(
             text,
             reply_markup=qc_review_keyboard(step.id),
         )

@@ -3,6 +3,7 @@ from src.bot.keyboards.admin import (
     admin_main_menu,
     cancel_add_user_keyboard,
     confirm_add_user_keyboard,
+    export_keyboard,
     role_choice_keyboard,
     skip_phone_keyboard,
     step_choice_keyboard,
@@ -109,4 +110,6 @@ __all__ = [
     "worker_submit_skip_comment_keyboard",
     "worker_task_detail_keyboard",
     "worker_tasks_keyboard",
+
+    "export_keyboard",
 ]

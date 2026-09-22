@@ -68,3 +68,24 @@ async def show_stats(
             text += f"  • {step_num}. {step_name}: —\n"
 
     await message.answer(text)
+
+
+from aiogram.types import CallbackQuery
+from src.bot.keyboards.admin import export_keyboard
+
+
+@router.message(IsAdmin(), F.text == "📤 Excel hisobot")
+async def show_export_menu(
+    message: Message,
+):
+    """Excel hisobot menyusini ko'rsatish."""
+    await message.answer(
+        "📤 <b>Excel hisobot</b>\n\n"
+        "Qaysi hisobotni yuklab olasiz?\n\n"
+        "📊 <b>Trucklar</b> — barcha trucklar ro'yxati\n"
+        "✅ <b>Tayyor</b> — faqat tugatilgan trucklar\n"
+        "🔵 <b>Jarayonda</b> — hozir ishlanayotgan trucklar\n"
+        "📋 <b>Steplar</b> — har bir step bo'yicha batafsil\n\n"
+        "💡 <i>Fayl .xlsx formatda yuklab olinadi.</i>",
+        reply_markup=export_keyboard(),
+    )

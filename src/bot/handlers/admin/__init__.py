@@ -1,8 +1,10 @@
 """Admin handlers."""
 from aiogram import Router
 
+from src.bot.handlers.admin.export import router as export_router
 from src.bot.handlers.admin.invites import router as invites_router
 from src.bot.handlers.admin.stats import router as stats_router
+from src.bot.handlers.admin.truck_timeline import router as timeline_router
 from src.bot.handlers.admin.trucks import router as trucks_router
 from src.bot.handlers.admin.user_add import router as user_add_router
 from src.bot.handlers.admin.users import router as users_router
@@ -15,5 +17,7 @@ def get_admin_router() -> Router:
     router.include_router(user_add_router)
     router.include_router(invites_router)
     router.include_router(trucks_router)
+    router.include_router(timeline_router)
+    router.include_router(export_router)
     router.include_router(stats_router)
     return router

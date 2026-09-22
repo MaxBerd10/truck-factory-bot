@@ -318,3 +318,31 @@ def truck_steps_keyboard(truck, steps: list) -> InlineKeyboardMarkup:
     builder.adjust(1)
 
     return builder.as_markup()
+
+
+
+def export_keyboard() -> InlineKeyboardMarkup:
+    """Excel hisobot uchun keyboard."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="📊 Barcha trucklar",
+        callback_data="export_trucks_all",
+    )
+    builder.button(
+        text="✅ Tayyor trucklar",
+        callback_data="export_trucks_completed",
+    )
+    builder.button(
+        text="🔵 Jarayondagi trucklar",
+        callback_data="export_trucks_in_progress",
+    )
+    builder.button(
+        text="📋 Barcha steplar",
+        callback_data="export_steps_all",
+    )
+    builder.button(
+        text="🔙 Asosiy menyu",
+        callback_data="main_menu",
+    )
+    builder.adjust(1)
+    return builder.as_markup()

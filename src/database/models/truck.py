@@ -2,7 +2,13 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, Integer, String
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    Enum,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.models.base import Base, TimestampMixin
@@ -19,20 +25,34 @@ class Truck(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    # Serial raqam (unikal)
+    # ==== Asosiy ma'lumotlar ====
     serial_number: Mapped[str] = mapped_column(
         String(64), unique=True, index=True, nullable=False
     )
-
-    # Model (ixtiyoriy)
     model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    customer: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )  # Buyurtmachi
 
-    # Hozirgi step (1-6)
+    # ==== Muddat va prioritet ====
+    deadline: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    priority: Mapped[str] = mapped_column(
+        Enum(
+            "low", "normal", "high", "urgent",
+            name="truck_priority",
+            native_enum=True,
+        ),
+        default="normal",
+        nullable=False,
+        index=True,
+    )
+
+    # ==== Holat ====
     current_step: Mapped[int] = mapped_column(
         Integer, default=1, nullable=False, index=True
     )
-
-    # Umumiy holat
     status: Mapped[str] = mapped_column(
         Enum(
             "in_progress", "completed",
@@ -44,7 +64,22 @@ class Truck(Base, TimestampMixin):
         index=True,
     )
 
-    # Yakunlangan vaqt
+    # ==== Kim yaratdi ====
+    created_by: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True
+    )  # Admin telegram_id yoki ERP ID
+    source: Mapped[str] = mapped_column(
+        Enum(
+            "admin", "erp",
+            name="truck_source",
+            native_enum=True,
+        ),
+        default="admin",
+        nullable=False,
+        index=True,
+    )
+
+    # ==== Vaqtlar ====
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

@@ -102,3 +102,31 @@ class CallbackPrefix(str, Enum):
     ADMIN_INVITES = "ai"
     ADMIN_TRUCKS = "at"
     ADMIN_STATS = "as"
+
+
+# ==== Truck prioriteti ====
+class TruckPriority(str, Enum):
+    LOW = "low"
+    NORMAL = "normal"
+    HIGH = "high"
+    URGENT = "urgent"
+
+
+PRIORITY_NAMES: dict[str, str] = {
+    "low": "🟢 Past",
+    "normal": "🔵 Oddiy",
+    "high": "🟠 Yuqori",
+    "urgent": "🔴 Shoshilinch",
+}
+
+
+# ==== Truck manbasi ====
+class TruckSource(str, Enum):
+    ADMIN = "admin"    # Admin qo'lda qo'shdi
+    ERP = "erp"        # ERP dan keldi
+
+
+SOURCE_NAMES: dict[str, str] = {
+    "admin": "👤 Admin",
+    "erp": "🌐 ERP",
+}

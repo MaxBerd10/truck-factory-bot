@@ -73,3 +73,13 @@ __all__ = [
     "truck_skip_keyboard",
     "truck_confirm_keyboard",
 ]
+
+from src.bot.keyboards.worker import (
+    worker_history_detail_keyboard,
+    worker_history_keyboard,
+    worker_submit_cancel_keyboard,
+    worker_submit_confirm_keyboard,
+    worker_submit_skip_comment_keyboard,
+    worker_task_detail_keyboard,
+    worker_tasks_keyboard,
+)

@@ -13,6 +13,7 @@ from src.bot.keyboards import (
     worker_submit_cancel_keyboard,
     worker_submit_confirm_keyboard,
     worker_submit_skip_comment_keyboard,
+    worker_tasks_keyboard,
 )
 from src.bot.states import SubmitWorkFSM
 from src.config import settings
@@ -20,6 +21,7 @@ from src.database.models.user import User
 from src.services.truck_step_service import (
     claim_step,
     get_step_with_truck,
+    get_worker_tasks,
     submit_step,
 )
 from src.utils.constants import STEP_NAMES
@@ -29,7 +31,49 @@ from src.utils.logger import logger
 router = Router(name="worker_submit")
 
 
-# ==== "Ish yuborish" ====
+# ==== "Ish yuborish" (reply tugma) ====
+@router.message(IsWorker(), F.text == "📤 Ish yuborish")
+async def submit_from_menu(
+    message: Message,
+    user: User,
+    session: AsyncSession,
+):
+    """Reply tugmadan ish yuborish."""
+    tasks = await get_worker_tasks(session, user.id, user.step_number)
+
+    if not tasks:
+        await message.answer(
+            "📤 <b>Ish yuborish</b>\n\n"
+            "⚠️ Hozircha yuborish uchun ish yo'q.\n\n"
+            "💡 <i>Yangi ish kelganda sizga xabar beramiz. "
+            "Yoki \"📋 Vazifalarim\" ni tekshiring.</i>",
+        )
+        return
+
+    if len(tasks) == 1:
+        task = tasks[0]
+        step_name = STEP_NAMES.get(
+            task.step_number, f"Step {task.step_number}"
+        )
+
+        await message.answer(
+            f"📤 <b>Ish yuborish</b>\n\n"
+            f"🚛 Truck: <b>{task.truck.serial_number}</b>\n"
+            f"🔧 Step: <b>{step_name}</b>\n\n"
+            f"👇 Davom etish uchun quyidagi tugmani bosing:",
+            reply_markup=worker_tasks_keyboard(tasks),
+        )
+        return
+
+    await message.answer(
+        f"📤 <b>Ish yuborish</b>\n\n"
+        f"📊 Sizda <b>{len(tasks)}</b> ta ish bor.\n\n"
+        f"👇 Qaysi ishni yubormoqchisiz?",
+        reply_markup=worker_tasks_keyboard(tasks),
+    )
+
+
+# ==== "Ish yuborish" (inline callback) ====
 @router.callback_query(IsWorker(), F.data.startswith("worker_submit:"))
 async def start_submit(
     callback: CallbackQuery,
@@ -228,7 +272,6 @@ async def confirm_submit(
     media_file_id = data["media_file_id"]
     media_local_path = None
 
-    # "Yuklanmoqda..." xabari
     loading_msg = await callback.message.answer(
         "⏳ <b>Yuklanmoqda...</b>\n\n"
         "<i>Iltimos, kuting. Video katta bo'lsa, 30 sekundgacha olishi mumkin.</i>"
@@ -270,7 +313,6 @@ async def confirm_submit(
         except Exception:
             pass
 
-    # Step ni yuborish
     await submit_step(
         session=session,
         step=step,
@@ -291,7 +333,6 @@ async def confirm_submit(
 
     step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
 
-    # Tugmalar bilan yuboramiz
     await callback.message.answer(
         f"✅ <b>Ish yuborildi!</b>\n\n"
         f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"

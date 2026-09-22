@@ -1,6 +1,6 @@
 """/start, /help va umumiy handlerlar."""
 from aiogram import F, Router
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.types import CallbackQuery, Message
 
 from src.bot.keyboards import main_menu_keyboard
@@ -107,13 +107,11 @@ async def callback_main_menu(
         await callback.message.answer("Ruxsat yo'q.")
         return
 
-    # Eski xabarni o'chirishga urinamiz
     try:
         await callback.message.delete()
     except Exception:
         pass
 
-    # Yangi xabar bilan asosiy menyu
     role_name = ROLE_NAMES.get(user.role, user.role)
 
     text = f"🏠 <b>Asosiy menyu</b>\n\n"
@@ -146,5 +144,23 @@ async def show_main_menu(message: Message, user: User) -> None:
 
     await message.answer(
         text,
+        reply_markup=main_menu_keyboard(user.role),
+    )
+
+
+# ==== Fallback (noma'lum matnli xabarlar) ====
+@router.message(StateFilter(None), F.text & ~F.text.startswith("/"))
+async def fallback_text(
+    message: Message,
+    user: User | None,
+):
+    """Noma'lum matnli xabarlar uchun."""
+    if not user:
+        return
+
+    await message.answer(
+        "🤔 <b>Buyruq tushunarsiz</b>\n\n"
+        "Iltimos, pastdagi tugmalardan foydalaning.\n\n"
+        "💡 <i>Yordam kerak bo'lsa /help buyrug'ini yuboring.</i>",
         reply_markup=main_menu_keyboard(user.role),
     )

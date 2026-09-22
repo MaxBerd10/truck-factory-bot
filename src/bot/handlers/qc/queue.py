@@ -28,7 +28,7 @@ async def refresh_queue(
     session: AsyncSession,
 ):
     """Navbatni yangilash."""
-    await callback.answer()
+    await callback.answer("🔄 Yangilanmoqda...")
     await _edit_queue(callback, session)
 
 
@@ -37,21 +37,21 @@ async def _send_queue(
     message: Message,
     session: AsyncSession,
 ) -> None:
-    """Yangi xabar bilan navbatni yuborish."""
+    """Navbatni yuborish."""
     steps = await get_qc_queue(session)
 
     if not steps:
         await message.answer(
-            "🔔 <b>Tekshirish navbati</b>\n\n"
-            "✅ Navbat bo'sh.\n\n"
-            "<i>Yangi ishlar kelganda sizga xabar beramiz.</i>",
+            "🎉 <b>Navbat bo'sh!</b>\n\n"
+            "✅ Barcha ishlar tekshirilgan.\n\n"
+            "💡 Yangi ish kelganda sizga xabar beramiz.",
         )
         return
 
     text = (
         f"🔔 <b>Tekshirish navbati</b>\n\n"
         f"📊 Jami: <b>{len(steps)}</b> ta ish\n\n"
-        f"Tekshirish uchun ishni tanlang:"
+        f"👇 Tekshirish uchun ishni tanlang:"
     )
 
     await message.answer(
@@ -64,28 +64,27 @@ async def _edit_queue(
     callback: CallbackQuery,
     session: AsyncSession,
 ) -> None:
-    """Mavjud xabarni tahrirlab, navbatni yangilash.
-
-    Agar xabar edit qilib bo'lmasa (rasm bilan), yangi xabar yuboramiz.
-    """
+    """Navbatni tahrirlash."""
     steps = await get_qc_queue(session)
 
     if not steps:
-        text = (
-            "🔔 <b>Tekshirish navbati</b>\n\n"
-            "✅ Navbat bo'sh.\n\n"
-            "<i>Yangi ishlar kelganda sizga xabar beramiz.</i>"
-        )
         try:
-            await callback.message.edit_text(text)
+            await callback.message.edit_text(
+                "🎉 <b>Navbat bo'sh!</b>\n\n"
+                "✅ Barcha ishlar tekshirilgan.\n\n"
+                "💡 Yangi ish kelganda sizga xabar beramiz.",
+            )
         except Exception:
-            await callback.message.answer(text)
+            await callback.message.answer(
+                "🎉 <b>Navbat bo'sh!</b>\n\n"
+                "✅ Barcha ishlar tekshirilgan.",
+            )
         return
 
     text = (
         f"🔔 <b>Tekshirish navbati</b>\n\n"
         f"📊 Jami: <b>{len(steps)}</b> ta ish\n\n"
-        f"Tekshirish uchun ishni tanlang:"
+        f"👇 Tekshirish uchun ishni tanlang:"
     )
 
     try:
@@ -94,7 +93,6 @@ async def _edit_queue(
             reply_markup=qc_queue_keyboard(steps),
         )
     except Exception:
-        # Rasmli xabar yoki edit qilib bo'lmaydigan xabar
         await callback.message.answer(
             text,
             reply_markup=qc_queue_keyboard(steps),

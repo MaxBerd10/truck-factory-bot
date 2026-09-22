@@ -56,6 +56,10 @@ def admin_menu_keyboard() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="📊 Statistika"),
             ],
             [
+                KeyboardButton(text="🏆 Reyting"),
+                KeyboardButton(text="📤 Excel hisobot"),
+            ],
+            [
                 KeyboardButton(text="🏠 Asosiy menyu"),
             ],
         ],

@@ -1,59 +1,80 @@
-"""Bot ning asosiy kirish nuqtasi."""
+"""Bot ishga tushirish (entry point)."""
 import asyncio
+import logging
+import sys
 
-from aiogram import Bot
-from aiogram.exceptions import TelegramUnauthorizedError
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
 
-from src.bot.dispatcher import create_dispatcher, default_bot_properties
+from src.bot.handlers import setup_handlers
+from src.bot.middlewares.db import DbSessionMiddleware
+from src.bot.middlewares.user import UserMiddleware
 from src.config import settings
-from src.database.engine import close_engine
+from src.scheduler import setup_scheduler, stop_scheduler
 from src.utils.logger import logger
 
 
-async def main() -> None:
-    """Botni ishga tushirish."""
-    logger.info("=" * 60)
-    logger.info("🚛 Truck Factory Bot ishga tushmoqda...")
-    logger.info(f"Environment: {settings.ENVIRONMENT}")
-    logger.info(f"Bot: @{settings.BOT_USERNAME}")
-    logger.info(f"Adminlar: {len(settings.ADMIN_IDS)} ta")
-    logger.info("=" * 60)
+# SQLAlchemy logging ni kamaytirish
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
+
+async def main() -> None:
+    """Asosiy funksiya."""
     # Bot
     bot = Bot(
         token=settings.BOT_TOKEN,
-        default=default_bot_properties(),
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
 
     # Bot ma'lumotlarini tekshirish
     try:
-        me = await bot.get_me()
-        logger.success(f"✅ Bot tasdiqlandi: @{me.username} (id={me.id})")
-    except TelegramUnauthorizedError:
-        logger.error("❌ BOT_TOKEN noto'g'ri! @BotFather dan yangi token oling.")
-        return
+        bot_info = await bot.get_me()
+        logger.info(f"✅ Bot tasdiqlandi: @{bot_info.username}")
     except Exception as e:
-        logger.error(f"❌ Bot bilan ulanishda xato: {e}")
-        return
+        logger.error(f"❌ Bot tokeni xato: {e}")
+        await bot.session.close()
+        sys.exit(1)
 
     # Dispatcher
-    dp = create_dispatcher()
+    dp = Dispatcher(storage=MemoryStorage())
 
-    logger.success("🚀 Bot polling boshlandi. Telegramda /start bosing.")
+    # Middlewares (tartib muhim!)
+    # 1. DB session — eng tashqi
+    dp.update.middleware(DbSessionMiddleware())
+    # 2. User — DB dan user ni yuklaydi
+    dp.update.middleware(UserMiddleware())
+
+    # Handlers
+    main_router = setup_handlers()
+    dp.include_router(main_router)
+
+    # Scheduler (kunlik hisobot va boshqalar)
+    setup_scheduler(bot)
+
+    # Botni ishga tushirish
+    logger.info("🚀 Bot polling boshlandi.")
 
     try:
-        # Webhook ni tozalash (agar avval ishlatilgan bo'lsa)
-        await bot.delete_webhook(drop_pending_updates=True)
-        # Polling boshlash
-        await dp.start_polling(bot)
+        await dp.start_polling(
+            bot,
+            allowed_updates=dp.resolve_used_update_types(),
+        )
     finally:
+        # Tozalash
+        stop_scheduler()
         await bot.session.close()
-        await close_engine()
-        logger.info("Bot to'xtatildi.")
+        logger.info("👋 Bot to'xtatildi.")
 
 
-if __name__ == "__main__":
+def run() -> None:
+    """Entry point (sync wrapper)."""
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logger.info("👋 Xayr!")
+        logger.info("⛔ Bot to'xtatildi (foydalanuvchi tomonidan).")
+
+
+if __name__ == "__main__":
+    run()

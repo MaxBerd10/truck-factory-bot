@@ -1,5 +1,5 @@
 """FSM States."""
-from src.bot.states.admin_states import AddUserFSM
+from src.bot.states.admin_states import AddUserFSM, CreateInviteFSM
 
 
-__all__ = ["AddUserFSM"]
+__all__ = ["AddUserFSM", "CreateInviteFSM"]

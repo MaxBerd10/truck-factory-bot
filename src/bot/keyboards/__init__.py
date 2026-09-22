@@ -8,6 +8,15 @@ from src.bot.keyboards.admin import (
     user_detail_keyboard,
     users_list_keyboard,
 )
+from src.bot.keyboards.invite import (
+    invite_confirm_keyboard,
+    invite_detail_keyboard,
+    invite_expires_keyboard,
+    invite_max_uses_keyboard,
+    invite_role_keyboard,
+    invite_step_keyboard,
+    invites_list_keyboard,
+)
 from src.bot.keyboards.reply import (
     BTN_BACK,
     BTN_CANCEL,
@@ -38,4 +47,11 @@ __all__ = [
     "role_choice_keyboard",
     "step_choice_keyboard",
     "confirm_add_user_keyboard",
+    "invites_list_keyboard",
+    "invite_role_keyboard",
+    "invite_step_keyboard",
+    "invite_expires_keyboard",
+    "invite_max_uses_keyboard",
+    "invite_confirm_keyboard",
+    "invite_detail_keyboard",
 ]

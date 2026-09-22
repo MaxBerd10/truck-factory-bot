@@ -10,3 +10,12 @@ class AddUserFSM(StatesGroup):
     role = State()
     step_number = State()
     confirm = State()
+
+
+class CreateInviteFSM(StatesGroup):
+    """Invite link yaratish bosqichlari."""
+    role = State()
+    step_number = State()
+    expires_in = State()
+    max_uses = State()
+    confirm = State()

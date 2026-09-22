@@ -15,6 +15,7 @@ def worker_menu_keyboard() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="📊 Statistika"),
             ],
             [
+                KeyboardButton(text="🔔 Sozlamalar"),
                 KeyboardButton(text="🏠 Asosiy menyu"),
             ],
         ],
@@ -35,6 +36,7 @@ def qc_menu_keyboard() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="📊 Statistika"),
             ],
             [
+                KeyboardButton(text="🔔 Sozlamalar"),
                 KeyboardButton(text="🏠 Asosiy menyu"),
             ],
         ],
@@ -57,7 +59,11 @@ def admin_menu_keyboard() -> ReplyKeyboardMarkup:
             ],
             [
                 KeyboardButton(text="🏆 Reyting"),
+                KeyboardButton(text="📈 Grafik"),
+            ],
+            [
                 KeyboardButton(text="📤 Excel hisobot"),
+                KeyboardButton(text="🔔 Sozlamalar"),
             ],
             [
                 KeyboardButton(text="🏠 Asosiy menyu"),

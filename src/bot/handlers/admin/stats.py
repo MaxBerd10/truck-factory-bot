@@ -1,9 +1,10 @@
-"""Admin — Statistika."""
+"""Admin — Statistika va grafik."""
 from aiogram import F, Router
-from aiogram.types import Message
+from aiogram.types import BufferedInputFile, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.filters import IsAdmin
+from src.services.chart_service import generate_monthly_chart
 from src.services.stats_service import get_admin_stats
 from src.utils.constants import STEP_SHORT_NAMES
 
@@ -45,13 +46,11 @@ async def show_stats(
         f"  • 🚫 Bloklangan: <b>{users['inactive']}</b>\n\n"
     )
 
-    # Har bir step bo'yicha
     text += "📈 <b>Har bir step bo'yicha:</b>\n"
     for step_num in range(1, 7):
         step_name = STEP_SHORT_NAMES.get(step_num, f"Step {step_num}")
         s = by_step[step_num]
 
-        # Faqat noldan katta bo'lganlar
         parts = []
         if s["pending"] > 0:
             parts.append(f"⏳{s['pending']}")
@@ -70,22 +69,22 @@ async def show_stats(
     await message.answer(text)
 
 
-from aiogram.types import CallbackQuery
-from src.bot.keyboards.admin import export_keyboard
-
-
-@router.message(IsAdmin(), F.text == "📤 Excel hisobot")
-async def show_export_menu(
+# ==== "Grafik" ====
+@router.message(IsAdmin(), F.text == "📈 Grafik")
+async def show_monthly_chart(
     message: Message,
+    session: AsyncSession,
 ):
-    """Excel hisobot menyusini ko'rsatish."""
-    await message.answer(
-        "📤 <b>Excel hisobot</b>\n\n"
-        "Qaysi hisobotni yuklab olasiz?\n\n"
-        "📊 <b>Trucklar</b> — barcha trucklar ro'yxati\n"
-        "✅ <b>Tayyor</b> — faqat tugatilgan trucklar\n"
-        "🔵 <b>Jarayonda</b> — hozir ishlanayotgan trucklar\n"
-        "📋 <b>Steplar</b> — har bir step bo'yicha batafsil\n\n"
-        "💡 <i>Fayl .xlsx formatda yuklab olinadi.</i>",
-        reply_markup=export_keyboard(),
+    """Oylik grafikni ko'rsatish."""
+    await message.answer("📈 <i>Grafik tayyorlanmoqda...</i>")
+
+    buf = await generate_monthly_chart(session)
+
+    await message.answer_photo(
+        photo=BufferedInputFile(buf.getvalue(), filename="chart.png"),
+        caption=(
+            "📊 <b>Oxirgi 30 kunlik statistika</b>\n\n"
+            "📘 Ko'k — yuborilgan steplar\n"
+            "📗 Yashil — tasdiqlangan steplar"
+        ),
     )

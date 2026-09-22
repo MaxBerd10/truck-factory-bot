@@ -158,6 +158,18 @@ async def fallback_text(
     if not user:
         return
 
+    # Tugmalar ro'yxati (bular fallback ga tushmasligi kerak)
+    known_buttons = {
+        "📋 Vazifalarim", "📤 Ish yuborish", "📜 Tarixim",
+        "📊 Statistika", "🔔 Sozlamalar", "🏠 Asosiy menyu",
+        "🔔 Tekshirish navbati",
+        "🚛 Trucklar", "👥 Foydalanuvchilar", "➕ Yangi truck",
+        "🏆 Reyting", "📈 Grafik", "📤 Excel hisobot",
+    }
+
+    if message.text in known_buttons:
+        return  # Boshqa handler lar ishlashi kerak
+
     await message.answer(
         "🤔 <b>Buyruq tushunarsiz</b>\n\n"
         "Iltimos, pastdagi tugmalardan foydalaning.\n\n"

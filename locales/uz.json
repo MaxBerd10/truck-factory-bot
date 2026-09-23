@@ -173,6 +173,8 @@
     "rating_title": "🏆 TOP ishchilar",
     "rating_empty": "🏆 Ishchi reytingi\n\n📋 Hozircha ma'lumot yo'q.\n\n💡 Ishchilar ish yuborgandan keyin reyting paydo bo'ladi.",
     "rating_hint": "💡 Reyting tasdiqlangan ishlar soni bo'yicha.",
+    "chart_generating": "📈 Grafik tayyorlanmoqda...",
+    "chart_title": "📊 Oxirgi 30 kunlik statistika\n\n📘 Ko'k — yuborilgan steplar\n📗 Yashil — tasdiqlangan steplar",
     "excel_title": "📤 Excel hisobot",
     "excel_choose": "Qaysi hisobotni yuklab olasiz?",
     "excel_trucks_all": "📊 Barcha trucklar",

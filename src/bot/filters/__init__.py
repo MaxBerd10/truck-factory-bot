@@ -6,6 +6,7 @@ from src.bot.filters.role import (
     IsRegistered,
     IsWorker,
 )
+from src.bot.filters.text_key import TextKeyFilter, text_key
 
 
 __all__ = [
@@ -14,4 +15,6 @@ __all__ = [
     "IsQC",
     "IsRegistered",
     "IsWorker",
+    "TextKeyFilter",
+    "text_key",
 ]

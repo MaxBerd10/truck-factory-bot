@@ -13,7 +13,8 @@
     "not_found": "⚠️ Ma'lumot topilmadi",
     "no_permission": "🚫 Ruxsat yo'q",
     "unknown_command": "🤔 Buyruq tushunarsiz. Pastdagi tugmalardan foydalaning.",
-    "help": "Yordam"
+    "help": "Yordam",
+    "cancelled": "❌ Bekor qilindi."
   },
   "roles": {
     "admin": "Administrator",
@@ -79,6 +80,8 @@
     "task_wait_qc": "💡 Sizning ishingiz QC tomonidan tekshirilmoqda. Natijani kuting.",
     "task_approved_msg": "✅ Bu ish tasdiqlangan. Rahmat!",
     "task_start_prompt": "💡 Ishni boshlash uchun quyidagi tugmani bosing.",
+    "wrong_step": "⚠️ Bu sizning stepingiz emas",
+    "already_submitted": "⚠️ Bu vazifa allaqachon yuborilgan",
     "submit_title": "📤 Ish yuborish",
     "submit_media_prompt": "📷 Rasm yoki video yuboring:\n\nTelegram orqali rasm/video yuboring.",
     "submit_photo_received": "✅ Rasm qabul qilindi.\n\n📝 Izoh qo'shing (ixtiyoriy):\n\nMasalan: Ichki qoplama tayyor, sifatli",

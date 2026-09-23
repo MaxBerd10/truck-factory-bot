@@ -3,27 +3,28 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.bot.filters import IsWorker
+from src.bot.filters import IsWorker, text_key
 from src.bot.keyboards import (
     worker_task_detail_keyboard,
     worker_tasks_keyboard,
 )
 from src.database.models.user import User
+from src.services.i18n_service import (
+    _,
+    get_priority_name,
+    get_step_name,
+)
 from src.services.truck_step_service import (
     get_step_with_truck,
     get_worker_tasks,
-)
-from src.utils.constants import (
-    PRIORITY_NAMES,
-    STEP_NAMES,
 )
 
 
 router = Router(name="worker_tasks")
 
 
-# ==== "Mening vazifalarim" ====
-@router.message(IsWorker(), F.text == "📋 Vazifalarim")
+# ==== "Mening vazifalarim" (barcha tillarda) ====
+@router.message(IsWorker(), text_key("worker.menu_tasks"))
 async def show_tasks(
     message: Message,
     user: User,
@@ -41,7 +42,8 @@ async def refresh_tasks(
     session: AsyncSession,
 ):
     """Vazifalarni yangilash."""
-    await callback.answer("🔄 Yangilanmoqda...")
+    lang = user.language or "uz"
+    await callback.answer(_("common.loading", language=lang))
     await _edit_tasks(callback, user, session)
 
 
@@ -57,53 +59,54 @@ async def view_task_detail(
     step = await get_step_with_truck(session, step_id)
 
     if not step:
-        await callback.answer("❌ Vazifa topilmadi", show_alert=True)
+        await callback.answer(
+            _("common.not_found", language=user.language or "uz"),
+            show_alert=True,
+        )
         return
 
     await callback.answer()
 
+    lang = user.language or "uz"
     truck = step.truck
-    priority_name = PRIORITY_NAMES.get(truck.priority, truck.priority)
-    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
+    priority_name = get_priority_name(truck.priority, lang)
+    step_name = get_step_name(step.step_number, lang)
 
     status_map = {
-        "pending": "⏳ Boshlash kerak",
-        "rejected": "❌ Rad etilgan — qayta yuboring",
-        "in_review": "🔍 QC tekshiruvida",
-        "approved": "✅ Tasdiqlangan",
+        "pending": "task_status_pending",
+        "rejected": "task_status_rejected",
+        "in_review": "task_status_in_review",
+        "approved": "task_status_approved",
     }
-    status_text = status_map.get(step.status, step.status)
+    status_text = _(
+        f"worker.{status_map.get(step.status, 'task_status_pending')}",
+        language=lang,
+    )
 
     text = f"🚛 <b>{truck.serial_number}</b>\n\n"
 
     if truck.model:
-        text += f"🏭 Model: {truck.model}\n"
+        text += f"🏭 {truck.model}\n"
     if truck.customer:
-        text += f"👤 Buyurtmachi: {truck.customer}\n"
+        text += f"👤 {truck.customer}\n"
     if truck.deadline:
-        text += f"📅 Muddat: {truck.deadline.strftime('%Y-%m-%d')}\n"
+        text += f"📅 {truck.deadline.strftime('%Y-%m-%d')}\n"
 
-    text += (
-        f"🎯 Prioritet: {priority_name}\n\n"
-        f"🔧 Sizning stepingiz: <b>{step_name}</b>\n"
-        f"📊 Holat: {status_text}\n"
-    )
+    text += f"\n🔧 <b>{step_name}</b>\n"
+    text += f"📊 {priority_name} | {status_text}\n"
 
     if step.status == "rejected" and step.qc_comment:
         text += (
-            f"\n❌ <b>Rad etish sababi:</b>\n"
+            f"\n❌ <b>{_('worker.task_rejected_reason', language=lang)}</b>\n"
             f"<i>{step.qc_comment}</i>\n"
         )
 
     if step.status == "in_review":
-        text += (
-            "\n💡 <i>Sizning ishingiz QC tomonidan tekshirilmoqda. "
-            "Natijani kuting.</i>"
-        )
+        text += f"\n💡 <i>{_('worker.task_wait_qc', language=lang)}</i>"
     elif step.status == "approved":
-        text += "\n✅ <i>Bu ish tasdiqlangan. Rahmat!</i>"
+        text += f"\n✅ <i>{_('worker.task_approved_msg', language=lang)}</i>"
     else:
-        text += "\n💡 <i>Ishni boshlash uchun quyidagi tugmani bosing.</i>"
+        text += f"\n💡 <i>{_('worker.task_start_prompt', language=lang)}</i>"
 
     await callback.message.edit_text(
         text,
@@ -118,16 +121,15 @@ async def _send_tasks(
     session: AsyncSession,
 ) -> None:
     """Vazifalar ro'yxatini yuborish."""
+    lang = user.language or "uz"
     tasks = await get_worker_tasks(session, user.id, user.step_number)
-
-    step_name = STEP_NAMES.get(user.step_number, f"Step {user.step_number}")
+    step_name = (
+        get_step_name(user.step_number, lang) if user.step_number else "—"
+    )
 
     if not tasks:
         await message.answer(
-            f"✅ <b>Hammasi bajarilgan!</b>\n\n"
-            f"🔧 Bo'lim: {step_name}\n\n"
-            f"📋 Hozircha yangi vazifa yo'q.\n\n"
-            f"💡 Yangi ish kelganda sizga xabar beramiz.",
+            _("worker.tasks_empty", language=lang, step=step_name),
         )
         return
 
@@ -135,20 +137,18 @@ async def _send_tasks(
     rejected = sum(1 for t in tasks if t.status == "rejected")
     in_review = sum(1 for t in tasks if t.status == "in_review")
 
-    text = (
-        f"📋 <b>Mening vazifalarim</b>\n\n"
-        f"🔧 Bo'lim: {step_name}\n\n"
-        f"📊 Jami: <b>{len(tasks)}</b> ta\n"
-    )
+    text = f"📋 <b>{_('worker.tasks_title', language=lang)}</b>\n\n"
+    text += f"🔧 {step_name}\n\n"
+    text += f"{_('worker.tasks_total', language=lang, count=len(tasks))}\n"
 
     if pending:
-        text += f"⏳ Boshlash kerak: <b>{pending}</b>\n"
+        text += f"{_('worker.tasks_pending', language=lang, count=pending)}\n"
     if rejected:
-        text += f"❌ Rad etilgan: <b>{rejected}</b>\n"
+        text += f"{_('worker.tasks_rejected', language=lang, count=rejected)}\n"
     if in_review:
-        text += f"🔍 Tekshiruvda: <b>{in_review}</b>\n"
+        text += f"{_('worker.tasks_in_review', language=lang, count=in_review)}\n"
 
-    text += "\n👇 Vazifani tanlang:"
+    text += f"\n{_('worker.tasks_choose', language=lang)}"
 
     await message.answer(
         text,
@@ -162,23 +162,20 @@ async def _edit_tasks(
     session: AsyncSession,
 ) -> None:
     """Vazifalar ro'yxatini tahrirlash."""
+    lang = user.language or "uz"
     tasks = await get_worker_tasks(session, user.id, user.step_number)
-
-    step_name = STEP_NAMES.get(user.step_number, f"Step {user.step_number}")
+    step_name = (
+        get_step_name(user.step_number, lang) if user.step_number else "—"
+    )
 
     if not tasks:
         try:
             await callback.message.edit_text(
-                f"✅ <b>Hammasi bajarilgan!</b>\n\n"
-                f"🔧 Bo'lim: {step_name}\n\n"
-                f"📋 Hozircha yangi vazifa yo'q.\n\n"
-                f"💡 Yangi ish kelganda sizga xabar beramiz.",
+                _("worker.tasks_empty", language=lang, step=step_name),
             )
         except Exception:
             await callback.message.answer(
-                f"✅ <b>Hammasi bajarilgan!</b>\n\n"
-                f"🔧 Bo'lim: {step_name}\n\n"
-                f"📋 Hozircha yangi vazifa yo'q.",
+                _("worker.tasks_empty", language=lang, step=step_name),
             )
         return
 
@@ -186,20 +183,18 @@ async def _edit_tasks(
     rejected = sum(1 for t in tasks if t.status == "rejected")
     in_review = sum(1 for t in tasks if t.status == "in_review")
 
-    text = (
-        f"📋 <b>Mening vazifalarim</b>\n\n"
-        f"🔧 Bo'lim: {step_name}\n\n"
-        f"📊 Jami: <b>{len(tasks)}</b> ta\n"
-    )
+    text = f"📋 <b>{_('worker.tasks_title', language=lang)}</b>\n\n"
+    text += f"🔧 {step_name}\n\n"
+    text += f"{_('worker.tasks_total', language=lang, count=len(tasks))}\n"
 
     if pending:
-        text += f"⏳ Boshlash kerak: <b>{pending}</b>\n"
+        text += f"{_('worker.tasks_pending', language=lang, count=pending)}\n"
     if rejected:
-        text += f"❌ Rad etilgan: <b>{rejected}</b>\n"
+        text += f"{_('worker.tasks_rejected', language=lang, count=rejected)}\n"
     if in_review:
-        text += f"🔍 Tekshiruvda: <b>{in_review}</b>\n"
+        text += f"{_('worker.tasks_in_review', language=lang, count=in_review)}\n"
 
-    text += "\n👇 Vazifani tanlang:"
+    text += f"\n{_('worker.tasks_choose', language=lang)}"
 
     try:
         await callback.message.edit_text(

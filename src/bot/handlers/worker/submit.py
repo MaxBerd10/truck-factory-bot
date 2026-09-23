@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.bot.filters import IsWorker
+from src.bot.filters import IsWorker, text_key
 from src.bot.keyboards import (
     worker_after_submit_keyboard,
     worker_submit_cancel_keyboard,
@@ -18,62 +18,59 @@ from src.bot.keyboards import (
 from src.bot.states import SubmitWorkFSM
 from src.config import settings
 from src.database.models.user import User
+from src.services.i18n_service import _, get_step_name
 from src.services.truck_step_service import (
     claim_step,
     get_step_with_truck,
     get_worker_tasks,
     submit_step,
 )
-from src.utils.constants import STEP_NAMES
 from src.utils.logger import logger
 
 
 router = Router(name="worker_submit")
 
 
-# ==== "Ish yuborish" (reply tugma) ====
-@router.message(IsWorker(), F.text == "📤 Ish yuborish")
+# ==================== "Ish yuborish" (reply tugma) ====================
+@router.message(IsWorker(), text_key("worker.menu_submit"))
 async def submit_from_menu(
     message: Message,
     user: User,
     session: AsyncSession,
 ):
     """Reply tugmadan ish yuborish."""
+    lang = user.language or "uz"
+
     tasks = await get_worker_tasks(session, user.id, user.step_number)
 
     if not tasks:
         await message.answer(
-            "📤 <b>Ish yuborish</b>\n\n"
-            "⚠️ Hozircha yuborish uchun ish yo'q.\n\n"
-            "💡 <i>Yangi ish kelganda sizga xabar beramiz. "
-            "Yoki \"📋 Vazifalarim\" ni tekshiring.</i>",
+            _("worker.no_tasks_to_submit", language=lang),
         )
         return
 
     if len(tasks) == 1:
         task = tasks[0]
-        step_name = STEP_NAMES.get(
-            task.step_number, f"Step {task.step_number}"
-        )
+        step_name = get_step_name(task.step_number, lang)
 
         await message.answer(
-            f"📤 <b>Ish yuborish</b>\n\n"
-            f"🚛 Truck: <b>{task.truck.serial_number}</b>\n"
-            f"🔧 Step: <b>{step_name}</b>\n\n"
-            f"👇 Davom etish uchun quyidagi tugmani bosing:",
+            _(
+                "worker.one_task_prompt",
+                language=lang,
+                truck=task.truck.serial_number,
+                step=step_name,
+            ),
             reply_markup=worker_tasks_keyboard(tasks),
         )
         return
 
     await message.answer(
-        f"📤 <b>Ish yuborish</b>\n\n"
-        f"📊 Sizda <b>{len(tasks)}</b> ta ish bor.\n\n"
-        f"👇 Qaysi ishni yubormoqchisiz?",
+        _("worker.multiple_tasks_prompt", language=lang, count=len(tasks)),
         reply_markup=worker_tasks_keyboard(tasks),
     )
 
 
-# ==== "Ish yuborish" (inline callback) ====
+# ==================== "Ish yuborish" (inline callback) ====================
 @router.callback_query(IsWorker(), F.data.startswith("worker_submit:"))
 async def start_submit(
     callback: CallbackQuery,
@@ -82,30 +79,28 @@ async def start_submit(
     session: AsyncSession,
 ):
     """Ish yuborishni boshlash."""
+    lang = user.language or "uz"
     step_id = int(callback.data.split(":")[1])
 
     step = await get_step_with_truck(session, step_id)
 
     if not step:
         await callback.answer(
-            "⚠️ Vazifa topilmadi\n\n"
-            "Iltimos, \"📋 Vazifalarim\" ni yangilang.",
+            _("common.not_found", language=lang),
             show_alert=True,
         )
         return
 
     if step.step_number != user.step_number:
         await callback.answer(
-            "⚠️ Bu sizning stepingiz emas\n\n"
-            "Siz faqat o'z bo'limingizdagi ishlarni yuborishingiz mumkin.",
+            _("worker.wrong_step", language=lang),
             show_alert=True,
         )
         return
 
     if step.status not in ["pending", "rejected"]:
         await callback.answer(
-            "⚠️ Bu vazifa allaqachon yuborilgan\n\n"
-            "Holatni \"📋 Vazifalarim\" da ko'rishingiz mumkin.",
+            _("worker.already_submitted", language=lang),
             show_alert=True,
         )
         return
@@ -117,25 +112,30 @@ async def start_submit(
     await state.update_data(step_id=step_id)
     await state.set_state(SubmitWorkFSM.media)
 
-    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
+    step_name = get_step_name(step.step_number, lang)
 
     await callback.message.edit_text(
-        f"📤 <b>Ish yuborish</b>\n\n"
-        f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
-        f"🔧 Step: <b>{step_name}</b>\n\n"
-        f"📷 <b>Rasm yoki video yuboring:</b>\n\n"
-        f"<i>Telegram orqali rasm/video yuboring.</i>",
+        _(
+            "worker.submit_title",
+            language=lang,
+        )
+        + f"\n\n🚛 <b>{step.truck.serial_number}</b>\n"
+        + f"🔧 <b>{step_name}</b>\n\n"
+        + _("worker.submit_media_prompt", language=lang),
         reply_markup=worker_submit_cancel_keyboard(),
     )
 
 
-# ==== Media qabul qilish (rasm) ====
+# ==================== Media qabul qilish (rasm) ====================
 @router.message(SubmitWorkFSM.media, F.photo)
 async def process_photo(
     message: Message,
     state: FSMContext,
+    user: User,
 ):
     """Rasmni qabul qilish."""
+    lang = user.language or "uz"
+
     await state.update_data(
         media_type="photo",
         media_file_id=message.photo[-1].file_id,
@@ -143,20 +143,21 @@ async def process_photo(
     await state.set_state(SubmitWorkFSM.comment)
 
     await message.answer(
-        "✅ <b>Rasm qabul qilindi.</b>\n\n"
-        "📝 <b>Izoh qo'shing</b> (ixtiyoriy):\n\n"
-        "<i>Masalan: Ichki qoplama tayyor, sifatli</i>",
+        _("worker.submit_photo_received", language=lang),
         reply_markup=worker_submit_skip_comment_keyboard(),
     )
 
 
-# ==== Media qabul qilish (video) ====
+# ==================== Media qabul qilish (video) ====================
 @router.message(SubmitWorkFSM.media, F.video)
 async def process_video(
     message: Message,
     state: FSMContext,
+    user: User,
 ):
     """Videoni qabul qilish."""
+    lang = user.language or "uz"
+
     await state.update_data(
         media_type="video",
         media_file_id=message.video.file_id,
@@ -164,20 +165,21 @@ async def process_video(
     await state.set_state(SubmitWorkFSM.comment)
 
     await message.answer(
-        "✅ <b>Video qabul qilindi.</b>\n\n"
-        "📝 <b>Izoh qo'shing</b> (ixtiyoriy):\n\n"
-        "<i>Masalan: Ichki qoplama tayyor, sifatli</i>",
+        _("worker.submit_video_received", language=lang),
         reply_markup=worker_submit_skip_comment_keyboard(),
     )
 
 
-# ==== Media qabul qilish (document) ====
+# ==================== Media qabul qilish (document) ====================
 @router.message(SubmitWorkFSM.media, F.document)
 async def process_document(
     message: Message,
     state: FSMContext,
+    user: User,
 ):
     """Hujjatni qabul qilish."""
+    lang = user.language or "uz"
+
     await state.update_data(
         media_type="document",
         media_file_id=message.document.file_id,
@@ -185,58 +187,59 @@ async def process_document(
     await state.set_state(SubmitWorkFSM.comment)
 
     await message.answer(
-        "✅ <b>Hujjat qabul qilindi.</b>\n\n"
-        "📝 <b>Izoh qo'shing</b> (ixtiyoriy):",
+        _("worker.submit_doc_received", language=lang),
         reply_markup=worker_submit_skip_comment_keyboard(),
     )
 
 
-# ==== Noto'g'ri media ====
+# ==================== Noto'g'ri media ====================
 @router.message(SubmitWorkFSM.media)
 async def invalid_media(
     message: Message,
     state: FSMContext,
+    user: User,
 ):
     """Noto'g'ri media turi."""
+    lang = user.language or "uz"
+
     await message.answer(
-        "⚠️ <b>Faqat rasm, video yoki hujjat yuboring</b>\n\n"
-        "📷 Rasm — kamera yoki galereyadan\n"
-        "🎥 Video — 30 sekundgacha\n"
-        "📄 Hujjat — PDF, Word va boshqalar\n\n"
-        "Qaytadan urinib ko'ring:",
+        _("worker.submit_invalid_media", language=lang),
         reply_markup=worker_submit_cancel_keyboard(),
     )
 
 
-# ==== Izohni o'tkazib yuborish ====
-@router.callback_query(SubmitWorkFSM.comment, F.data == "worker_submit_skip_comment")
+# ==================== Izohni o'tkazib yuborish ====================
+@router.callback_query(
+    SubmitWorkFSM.comment,
+    F.data == "worker_submit_skip_comment",
+)
 async def skip_comment(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
 ):
     """Izohni o'tkazib yuborish."""
     await callback.answer()
     await state.update_data(worker_comment=None)
     await state.set_state(SubmitWorkFSM.confirm)
 
-    await _show_submit_confirmation(callback.message, state)
+    await _show_submit_confirmation(callback.message, state, user)
 
 
-# ==== Izoh qabul qilish ====
+# ==================== Izoh qabul qilish ====================
 @router.message(SubmitWorkFSM.comment, F.text)
 async def process_comment(
     message: Message,
     state: FSMContext,
+    user: User,
 ):
     """Izohni qabul qilish."""
+    lang = user.language or "uz"
     text = message.text.strip()
 
     if len(text) > 1000:
         await message.answer(
-            "⚠️ <b>Izoh juda uzun</b>\n\n"
-            f"Sizning izohingiz: {len(text)} belgi\n"
-            f"Maksimal: 1000 belgi\n\n"
-            "Qisqartirib qaytadan yuboring:",
+            _("worker.submit_comment_too_long", language=lang, len=len(text)),
             reply_markup=worker_submit_skip_comment_keyboard(),
         )
         return
@@ -244,11 +247,14 @@ async def process_comment(
     await state.update_data(worker_comment=text)
     await state.set_state(SubmitWorkFSM.confirm)
 
-    await _show_submit_confirmation(message, state, use_edit=False)
+    await _show_submit_confirmation(message, state, user, use_edit=False)
 
 
-# ==== Tasdiqlash ====
-@router.callback_query(SubmitWorkFSM.confirm, F.data == "worker_submit_confirm")
+# ==================== Tasdiqlash ====================
+@router.callback_query(
+    SubmitWorkFSM.confirm,
+    F.data == "worker_submit_confirm",
+)
 async def confirm_submit(
     callback: CallbackQuery,
     state: FSMContext,
@@ -257,6 +263,7 @@ async def confirm_submit(
     bot: Bot,
 ):
     """Ishni yuborish."""
+    lang = user.language or "uz"
     data = await state.get_data()
     await callback.answer()
 
@@ -264,7 +271,9 @@ async def confirm_submit(
     step = await get_step_with_truck(session, step_id)
 
     if not step:
-        await callback.message.edit_text("❌ Xato: vazifa topilmadi")
+        await callback.message.edit_text(
+            _("common.not_found", language=lang)
+        )
         await state.clear()
         return
 
@@ -273,15 +282,19 @@ async def confirm_submit(
     media_local_path = None
 
     loading_msg = await callback.message.answer(
-        "⏳ <b>Yuklanmoqda...</b>\n\n"
-        "<i>Iltimos, kuting. Video katta bo'lsa, 30 sekundgacha olishi mumkin.</i>"
+        _("worker.submit_loading", language=lang)
     )
 
     try:
         file = await bot.get_file(media_file_id)
 
         media_dir = Path(settings.MEDIA_ROOT)
-        folder = media_dir / "trucks" / str(step.truck_id) / f"step_{step.step_number}"
+        folder = (
+            media_dir
+            / "trucks"
+            / str(step.truck_id)
+            / f"step_{step.step_number}"
+        )
         folder.mkdir(parents=True, exist_ok=True)
 
         ext_map = {"photo": ".jpg", "video": ".mp4", "document": ".bin"}
@@ -297,8 +310,7 @@ async def confirm_submit(
 
         try:
             await loading_msg.edit_text(
-                "✅ <b>Media saqlandi!</b>\n\n"
-                "<i>Endi QC ga yuborilmoqda...</i>"
+                _("worker.submit_saved", language=lang)
             )
         except Exception:
             pass
@@ -307,8 +319,7 @@ async def confirm_submit(
         logger.error(f"❌ Media saqlashda xato: {e}")
         try:
             await loading_msg.edit_text(
-                "⚠️ <b>Media yuklashda xato!</b>\n\n"
-                "<i>Lekin davom etamiz.</i>"
+                _("worker.submit_error_save", language=lang)
             )
         except Exception:
             pass
@@ -331,58 +342,66 @@ async def confirm_submit(
     except Exception:
         pass
 
-    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
+    step_name = get_step_name(step.step_number, lang)
 
     await callback.message.answer(
-        f"✅ <b>Ish yuborildi!</b>\n\n"
-        f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
-        f"🔧 Step: <b>{step_name}</b>\n\n"
-        f"📊 Holat: <b>🔍 QC tekshiruvida</b>\n\n"
-        f"💡 <i>Sifat nazoratchisi tekshirib, tasdiqlaydi yoki rad etadi. "
-        f"Natijani \"📋 Vazifalarim\" da ko'rasiz.</i>",
+        _(
+            "worker.submit_success",
+            language=lang,
+            truck=step.truck.serial_number,
+            step=step_name,
+        ),
         reply_markup=worker_after_submit_keyboard(),
     )
 
 
-# ==== Qaytadan ====
-@router.callback_query(SubmitWorkFSM.confirm, F.data == "worker_submit_restart")
+# ==================== Qaytadan ====================
+@router.callback_query(
+    SubmitWorkFSM.confirm,
+    F.data == "worker_submit_restart",
+)
 async def restart_submit(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
 ):
     """Boshidan boshlash."""
+    lang = user.language or "uz"
     await callback.answer()
     await state.set_state(SubmitWorkFSM.media)
 
     await callback.message.edit_text(
-        "📷 <b>Rasm yoki video yuboring:</b>",
+        _("worker.submit_media_prompt", language=lang),
         reply_markup=worker_submit_cancel_keyboard(),
     )
 
 
-# ==== Bekor qilish ====
+# ==================== Bekor qilish ====================
 @router.callback_query(F.data == "worker_submit_cancel")
 async def cancel_submit(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
 ):
     """Bekor qilish."""
-    await callback.answer("❌ Bekor qilindi")
+    lang = user.language or "uz"
+    await callback.answer(_("common.cancel", language=lang))
     await state.clear()
 
     await callback.message.edit_text(
-        "❌ <b>Bekor qilindi.</b>\n\n"
-        "Vazifalar ro'yxatiga qaytish uchun /start bosing."
+        _("common.cancelled", language=lang)
     )
 
 
-# ==== Yordamchi ====
+# ==================== Yordamchi ====================
 async def _show_submit_confirmation(
     message: Message,
     state: FSMContext,
+    user: User,
     use_edit: bool = True,
 ) -> None:
     """Tasdiqlash oynasini ko'rsatish."""
+    lang = user.language or "uz"
     data = await state.get_data()
 
     media_type = data.get("media_type", "photo")
@@ -393,16 +412,17 @@ async def _show_submit_confirmation(
     }.get(media_type, "📎 Fayl")
 
     comment = data.get("worker_comment")
-    comment_text = comment if comment else "<i>— yo'q —</i>"
+    comment_text = comment if comment else _(
+        "worker.submit_confirm_no_comment", language=lang
+    )
 
     text = (
-        f"📋 <b>Tasdiqlash</b>\n\n"
-        f"📎 <b>Media:</b> {media_icon}\n"
-        f"📝 <b>Izoh:</b> {comment_text}\n\n"
+        f"{_('worker.submit_confirm_title', language=lang)}\n\n"
+        f"{_('worker.submit_confirm_media', language=lang, media=media_icon)}\n"
+        f"{_('worker.submit_confirm_comment', language=lang, comment=comment_text)}\n\n"
         f"━━━━━━━━━━━━━━━━━━\n\n"
-        f"<b>Ishni yuborishni tasdiqlaysizmi?</b>\n\n"
-        f"💡 <i>Yuborilgandan keyin QC tekshiradi. "
-        f"Natijani \"📋 Vazifalarim\" da ko'rasiz.</i>"
+        f"<b>{_('worker.submit_confirm_question', language=lang)}</b>\n\n"
+        f"💡 <i>{_('worker.submit_confirm_hint', language=lang)}</i>"
     )
 
     if use_edit:

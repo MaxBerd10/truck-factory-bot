@@ -1,10 +1,24 @@
 """Loguru asosida sozlangan logger."""
+import logging as std_logging
 import sys
 from pathlib import Path
 
 from loguru import logger
 
 from src.config import settings
+
+
+# ==================== SHOVQINLI LOGLARNI O'CHIRISH ====================
+std_logging.getLogger("sqlalchemy").setLevel(std_logging.WARNING)
+std_logging.getLogger("sqlalchemy.engine").setLevel(std_logging.WARNING)
+std_logging.getLogger("sqlalchemy.engine.Engine").setLevel(std_logging.WARNING)
+std_logging.getLogger("sqlalchemy.pool").setLevel(std_logging.WARNING)
+std_logging.getLogger("sqlalchemy.orm").setLevel(std_logging.WARNING)
+std_logging.getLogger("aiogram").setLevel(std_logging.WARNING)
+std_logging.getLogger("aiogram.dispatcher").setLevel(std_logging.WARNING)
+std_logging.getLogger("aiogram.event").setLevel(std_logging.WARNING)
+std_logging.getLogger("apscheduler").setLevel(std_logging.WARNING)
+std_logging.getLogger("asyncio").setLevel(std_logging.WARNING)
 
 
 # Standart handlerni olib tashlaymiz

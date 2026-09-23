@@ -4,16 +4,16 @@ from src.bot.keyboards.admin import (
     cancel_add_user_keyboard,
     confirm_add_user_keyboard,
     export_keyboard,
-    role_choice_keyboard,
-    skip_phone_keyboard,
-    step_choice_keyboard,
-    user_detail_keyboard,
-    users_list_keyboard,
-)
-from src.bot.keyboards.invite import (
     invite_cancel_keyboard,
     invite_role_keyboard,
     invite_step_keyboard,
+    role_choice_keyboard,
+    skip_phone_keyboard,
+    step_choice_keyboard,
+    truck_cancel_keyboard,
+    truck_confirm_keyboard,
+    user_detail_keyboard,
+    users_list_keyboard,
 )
 from src.bot.keyboards.language import (
     language_keyboard,
@@ -40,7 +40,6 @@ from src.bot.keyboards.reply import (
     worker_menu_keyboard,
 )
 from src.bot.keyboards.truck import (
-    truck_confirm_keyboard,
     truck_detail_keyboard,
     truck_priority_keyboard,
     truck_skip_keyboard,
@@ -59,15 +58,7 @@ from src.bot.keyboards.worker import (
 
 
 def main_menu_keyboard(role: str, language: str = "uz"):
-    """Rolga qarab asosiy menyu keyboard ini qaytarish.
-
-    Args:
-        role: Foydalanuvchi roli (admin, qc, worker)
-        language: Til kodi (uz, uz_cyrl, ru)
-
-    Returns:
-        ReplyKeyboardMarkup: Asosiy menyu keyboard
-    """
+    """Rolga qarab asosiy menyu keyboard ini qaytarish."""
     if role == "admin":
         return admin_menu_keyboard(language)
     if role == "qc":
@@ -102,6 +93,7 @@ __all__ = [
     "role_choice_keyboard",
     "skip_phone_keyboard",
     "step_choice_keyboard",
+    "truck_cancel_keyboard",
     "truck_confirm_keyboard",
     "truck_detail_keyboard",
     "truck_priority_keyboard",

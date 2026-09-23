@@ -33,8 +33,14 @@ async def _get_or_create_settings(
     return settings
 
 
-# ==== "🔔 Sozlamalar" ====
-@router.message(F.text == "🔔 Sozlamalar")
+# ==== "🔔 Sozlamalar" (barcha tillarda) ====
+@router.message(
+    F.text.in_({
+        "🔔 Sozlamalar",   # uz
+        "🔔 Созламалар",   # uz_cyrl
+        "🔔 Настройки",    # ru
+    })
+)
 async def show_settings(
     message: Message,
     user: User,
@@ -46,9 +52,9 @@ async def show_settings(
     lang = user.language or "uz"
 
     text = (
-        f"{_('settings.title', lang)}\n\n"
-        f"{_('settings.notifications', lang)}\n\n"
-        f"{_('settings.notifications_prompt', lang)}"
+        f"{_('settings.title', language=lang)}\n\n"
+        f"{_('settings.notifications', language=lang)}\n\n"
+        f"{_('settings.notifications_prompt', language=lang)}"
     )
 
     await message.answer(
@@ -72,7 +78,7 @@ async def toggle_notification(
 
     if not hasattr(settings, field):
         await callback.answer(
-            _("common.error_generic", lang),
+            _("common.error_generic", language=lang),
             show_alert=True,
         )
         return
@@ -82,12 +88,12 @@ async def toggle_notification(
     await session.flush()
 
     field_key = f"settings.{field}"
-    name = _(field_key, lang)
+    name = _(field_key, language=lang)
 
     if not current:
-        status = _("settings.enabled", lang, name=name)
+        status = _("settings.enabled", language=lang, name=name)
     else:
-        status = _("settings.disabled", lang, name=name)
+        status = _("settings.disabled", language=lang, name=name)
 
     await callback.answer(status)
 
@@ -111,6 +117,7 @@ async def show_language_settings(
     lang = user.language or "uz"
 
     await callback.message.edit_text(
-        f"{_('language.title', lang)}\n\n{_('language.choose', lang)}",
+        f"{_('language.title', language=lang)}\n\n"
+        f"{_('language.choose', language=lang)}",
         reply_markup=language_settings_keyboard(),
     )

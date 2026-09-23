@@ -17,7 +17,45 @@ from src.services.user_service import create_admin_if_needed
 router = Router(name="common")
 
 
-# ==== /start (deep link siz) ====
+# ==================== Dinamik tugmalar ro'yxati ====================
+def _get_all_translations(key: str) -> tuple[str, ...]:
+    """Barcha tillardagi tarjimalarni olish."""
+    langs = ["uz", "uz_cyrl", "ru"]
+    return tuple(_(key, language=lang) for lang in langs)
+
+
+def _get_all_menu_buttons() -> tuple[str, ...]:
+    """Barcha tillardagi menyu tugmalarini olish."""
+    keys = [
+        "common.main_menu",
+        "worker.menu_tasks",
+        "worker.menu_submit",
+        "worker.menu_history",
+        "worker.menu_stats",
+        "qc.menu_queue",
+        "admin.menu_trucks",
+        "admin.menu_users",
+        "admin.menu_new_truck",
+        "admin.menu_stats",
+        "admin.menu_rating",
+        "admin.menu_chart",
+        "admin.menu_excel",
+        "settings.title",
+    ]
+    buttons: set[str] = set()
+    for key in keys:
+        buttons.update(_get_all_translations(key))
+    return tuple(buttons)
+
+
+# Asosiy menyu tugmalari (barcha tillarda)
+MAIN_MENU_BUTTONS = _get_all_translations("common.main_menu")
+
+# Barcha menyu tugmalari (fallback uchun)
+KNOWN_BUTTONS = _get_all_menu_buttons()
+
+
+# ==================== /start ====================
 @router.message(CommandStart(deep_link=False))
 async def cmd_start(
     message: Message,
@@ -28,7 +66,6 @@ async def cmd_start(
     tg_user = message.from_user
 
     if user:
-        # Til tanlanmagan bo'lsa — so'rash
         if not user.language:
             await message.answer(
                 "🌐 <b>Tilni tanlang</b>\n\n"
@@ -42,7 +79,6 @@ async def cmd_start(
         await show_main_menu(message, user)
         return
 
-    # Yangi foydalanuvchi — admin yaratish
     admin = await create_admin_if_needed(
         session=session,
         telegram_id=tg_user.id,
@@ -51,13 +87,14 @@ async def cmd_start(
     )
 
     if admin:
+        lang = admin.language or "uz"
         await message.answer(
             _(
                 "start.admin_welcome",
-                language=admin.language or "uz",
+                language=lang,
                 name=admin.full_name,
             ),
-            reply_markup=main_menu_keyboard(admin.role),
+            reply_markup=main_menu_keyboard(admin.role, lang),
         )
         return
 
@@ -66,7 +103,7 @@ async def cmd_start(
     )
 
 
-# ==== /help ====
+# ==================== /help ====================
 @router.message(Command("help"))
 async def cmd_help(message: Message, user: User | None):
     """Yordam."""
@@ -92,7 +129,7 @@ async def cmd_help(message: Message, user: User | None):
     await message.answer(help_text)
 
 
-# ==== /id ====
+# ==================== /id ====================
 @router.message(Command("id"))
 async def cmd_id(message: Message):
     """Telegram ID ni ko'rsatish."""
@@ -104,17 +141,20 @@ async def cmd_id(message: Message):
     )
 
 
-# ==== 🏠 Asosiy menyu (reply tugma) ====
-@router.message(F.text == "🏠 Asosiy menyu")
-async def btn_main_menu(message: Message, user: User | None):
-    """Reply tugmadan asosiy menyuga qaytish."""
+# ==================== 🏠 Asosiy menyu (FAQAT shu tugma) ====================
+@router.message(F.text.in_(MAIN_MENU_BUTTONS))
+async def btn_main_menu(
+    message: Message,
+    user: User | None,
+):
+    """Reply tugmadan asosiy menyuga qaytish (barcha tillar)."""
     if not user:
         await message.answer("Ruxsat yo'q.")
         return
     await show_main_menu(message, user)
 
 
-# ==== 🔙 Asosiy menyu (inline callback) ====
+# ==================== 🔙 Asosiy menyu (inline callback) ====================
 @router.callback_query(F.data == "main_menu")
 async def callback_main_menu(
     callback: CallbackQuery,
@@ -145,11 +185,11 @@ async def callback_main_menu(
 
     await callback.message.answer(
         text,
-        reply_markup=main_menu_keyboard(user.role),
+        reply_markup=main_menu_keyboard(user.role, lang),
     )
 
 
-# ==== Yordamchi funksiya ====
+# ==================== Yordamchi ====================
 async def show_main_menu(message: Message, user: User) -> None:
     """Rolga qarab asosiy menyu ko'rsatish."""
     lang = user.language or "uz"
@@ -166,11 +206,11 @@ async def show_main_menu(message: Message, user: User) -> None:
 
     await message.answer(
         text,
-        reply_markup=main_menu_keyboard(user.role),
+        reply_markup=main_menu_keyboard(user.role, lang),
     )
 
 
-# ==== Fallback (noma'lum matnli xabarlar) ====
+# ==================== Fallback (noma'lum matnli xabarlar) ====================
 @router.message(StateFilter(None), F.text & ~F.text.startswith("/"))
 async def fallback_text(
     message: Message,
@@ -180,21 +220,12 @@ async def fallback_text(
     if not user:
         return
 
-    # Tugmalar ro'yxati
-    known_buttons = {
-        "📋 Vazifalarim", "📤 Ish yuborish", "📜 Tarixim",
-        "📊 Statistika", "🔔 Sozlamalar", "🏠 Asosiy menyu",
-        "🔔 Tekshirish navbati",
-        "🚛 Trucklar", "👥 Foydalanuvchilar", "➕ Yangi truck",
-        "🏆 Reyting", "📈 Grafik", "📤 Excel hisobot",
-    }
-
-    if message.text in known_buttons:
+    if message.text in KNOWN_BUTTONS:
         return
 
     lang = user.language or "uz"
 
     await message.answer(
         _("common.unknown_command", language=lang),
-        reply_markup=main_menu_keyboard(user.role),
+        reply_markup=main_menu_keyboard(user.role, lang),
     )

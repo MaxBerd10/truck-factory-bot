@@ -3,9 +3,8 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.bot.keyboards.language import (
-    language_settings_keyboard,
-)
+from src.bot.keyboards import main_menu_keyboard
+from src.bot.keyboards.language import language_settings_keyboard
 from src.database.models.user import User
 from src.services.i18n_service import (
     _,
@@ -27,11 +26,9 @@ async def choose_language(
     """Til tanlash (/start da)."""
     lang = callback.data.split(":")[1]
 
-    # Tilni saqlash
     user.language = lang
     await session.flush()
 
-    # Til nomini olish (o'zi tanlagan tilda)
     lang_name = _(
         f"language.{lang}",
         language=lang,
@@ -41,7 +38,6 @@ async def choose_language(
         _("language.changed", language=lang, language_name=lang_name)
     )
 
-    # Asosiy menyu (yangi tilda)
     await _show_main_menu(callback, user, lang)
 
 
@@ -67,7 +63,6 @@ async def change_language_settings(
         _("language.changed", language=lang, language_name=lang_name)
     )
 
-    # Asosiy menyu (yangi tilda)
     await _show_main_menu(callback, user, lang)
 
 
@@ -95,7 +90,7 @@ async def _show_main_menu(
     user: User,
     lang: str,
 ) -> None:
-    """Asosiy menyuni ko'rsatish (yangi tilda)."""
+    """Asosiy menyuni ko'rsatish (yangi tilda + yangi keyboard)."""
     role_name = get_role_name(user.role, lang)
 
     text = f"👋 <b>{user.full_name}</b>\n\n"
@@ -107,4 +102,13 @@ async def _show_main_menu(
 
     text += f"\n{_('start.choose_section', language=lang)}"
 
-    await callback.message.edit_text(text)
+    # Xabarni yangilash (yoki yangi yuborish)
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    await callback.message.answer(
+        text,
+        reply_markup=main_menu_keyboard(user.role, lang),
+    )

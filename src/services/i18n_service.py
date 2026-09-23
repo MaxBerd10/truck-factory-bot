@@ -50,20 +50,15 @@ def _(
     """Tarjima qilish.
 
     Args:
-        key: Kalit (masalan, "start.welcome" yoki "worker.menu_tasks")
+        key: Kalit (masalan, "start.welcome")
         language: Til kodi (uz, uz_cyrl, ru)
         **kwargs: Format uchun o'zgaruvchilar
 
     Returns:
         Tarjima qilingan matn
-
-    Misol:
-        _("start.welcome", language="uz", name="Diyora")
-        # => "👋 Salom, Diyora!"
     """
     locale = load_locale(language)
 
-    # Nuqtali kalitni ajratish
     keys = key.split(".")
     value: Any = locale
 
@@ -71,18 +66,15 @@ def _(
         if isinstance(value, dict) and k in value:
             value = value[k]
         else:
-            # Kalit topilmadi — standart tilga qaytish
             if language != DEFAULT_LANGUAGE:
                 return _(key, DEFAULT_LANGUAGE, **kwargs)
             logger.warning(f"⚠️ Tarjima topilmadi: {key}")
             return f"[{key}]"
 
-    # Agar dict bo'lsa (noto'g'ri kalit)
     if isinstance(value, dict):
         logger.warning(f"⚠️ Kalit dict qaytardi: {key}")
         return f"[{key}]"
 
-    # Format (agar kwargs bo'lsa)
     if kwargs:
         try:
             return str(value).format(**kwargs)
@@ -103,23 +95,31 @@ def get_step_name(step_number: int, language: str) -> str:
 
 def get_priority_name(priority: str, language: str) -> str:
     """Prioritet nomini tilga qarab olish."""
+    # Enum → str
+    priority_str = (
+        priority.value if hasattr(priority, "value") else str(priority)
+    )
     return _(
-        f"priorities.{priority}",
+        f"priorities.{priority_str}",
         language=language,
     )
 
 
 def get_status_name(status: str, language: str) -> str:
     """Holat nomini tilga qarab olish."""
+    # Enum → str
+    status_str = status.value if hasattr(status, "value") else str(status)
     return _(
-        f"statuses.{status}",
+        f"statuses.{status_str}",
         language=language,
     )
 
 
 def get_role_name(role: str, language: str) -> str:
     """Rol nomini tilga qarab olish."""
+    # Enum → str (UserRole.ADMIN → "admin")
+    role_str = role.value if hasattr(role, "value") else str(role)
     return _(
-        f"roles.{role}",
+        f"roles.{role_str}",
         language=language,
     )

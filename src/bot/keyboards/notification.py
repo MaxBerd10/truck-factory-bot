@@ -17,35 +17,50 @@ def notification_settings_keyboard(
         return "✅" if val else "❌"
 
     builder.button(
-        text=f"{icon(settings.on_new_task)} {_('settings.on_new_task', language)}",
+        text=(
+            f"{icon(settings.on_new_task)} "
+            f"{_('settings.on_new_task', language=language)}"
+        ),
         callback_data="notif_toggle:on_new_task",
     )
     builder.button(
-        text=f"{icon(settings.on_approved)} {_('settings.on_approved', language)}",
+        text=(
+            f"{icon(settings.on_approved)} "
+            f"{_('settings.on_approved', language=language)}"
+        ),
         callback_data="notif_toggle:on_approved",
     )
     builder.button(
-        text=f"{icon(settings.on_rejected)} {_('settings.on_rejected', language)}",
+        text=(
+            f"{icon(settings.on_rejected)} "
+            f"{_('settings.on_rejected', language=language)}"
+        ),
         callback_data="notif_toggle:on_rejected",
     )
     builder.button(
-        text=f"{icon(settings.on_next_step)} {_('settings.on_next_step', language)}",
+        text=(
+            f"{icon(settings.on_next_step)} "
+            f"{_('settings.on_next_step', language=language)}"
+        ),
         callback_data="notif_toggle:on_next_step",
     )
     builder.button(
-        text=f"{icon(settings.daily_report)} {_('settings.daily_report', language)}",
+        text=(
+            f"{icon(settings.daily_report)} "
+            f"{_('settings.daily_report', language=language)}"
+        ),
         callback_data="notif_toggle:daily_report",
     )
 
     # Til o'zgartirish
     builder.button(
-        text=_("settings.change_language", language),
+        text=_("settings.change_language", language=language),
         callback_data="settings_language",
     )
 
     # Asosiy menyu
     builder.button(
-        text=f"🔙 {_('common.main_menu', language)}",
+        text=f"🔙 {_('common.main_menu', language=language)}",
         callback_data="main_menu",
     )
 

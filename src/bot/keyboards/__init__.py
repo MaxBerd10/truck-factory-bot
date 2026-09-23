@@ -58,13 +58,21 @@ from src.bot.keyboards.worker import (
 )
 
 
-def main_menu_keyboard(role: str):
-    """Rolga qarab asosiy menyu keyboard ini qaytarish."""
+def main_menu_keyboard(role: str, language: str = "uz"):
+    """Rolga qarab asosiy menyu keyboard ini qaytarish.
+
+    Args:
+        role: Foydalanuvchi roli (admin, qc, worker)
+        language: Til kodi (uz, uz_cyrl, ru)
+
+    Returns:
+        ReplyKeyboardMarkup: Asosiy menyu keyboard
+    """
     if role == "admin":
-        return admin_menu_keyboard()
+        return admin_menu_keyboard(language)
     if role == "qc":
-        return qc_menu_keyboard()
-    return worker_menu_keyboard()
+        return qc_menu_keyboard(language)
+    return worker_menu_keyboard(language)
 
 
 __all__ = [

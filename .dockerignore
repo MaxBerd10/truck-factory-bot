@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.venv
+venv
+env
+
+# Test
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov
+.coverage
+coverage.xml
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Media va loglar
+media/
+logs/
+
+# .env (maxfiy!)
+.env
+
+# Docs
+*.md
+docs/

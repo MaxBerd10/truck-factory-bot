@@ -97,13 +97,13 @@ async def view_task_detail(
 
     if step.status == "in_review":
         text += (
-            f"\n💡 <i>Sizning ishingiz QC tomonidan tekshirilmoqda. "
-            f"Natijani kuting.</i>"
+            "\n💡 <i>Sizning ishingiz QC tomonidan tekshirilmoqda. "
+            "Natijani kuting.</i>"
         )
     elif step.status == "approved":
-        text += f"\n✅ <i>Bu ish tasdiqlangan. Rahmat!</i>"
+        text += "\n✅ <i>Bu ish tasdiqlangan. Rahmat!</i>"
     else:
-        text += f"\n💡 <i>Ishni boshlash uchun quyidagi tugmani bosing.</i>"
+        text += "\n💡 <i>Ishni boshlash uchun quyidagi tugmani bosing.</i>"
 
     await callback.message.edit_text(
         text,

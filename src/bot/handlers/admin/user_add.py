@@ -4,7 +4,6 @@ import re
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.filters import IsAdmin
@@ -19,7 +18,6 @@ from src.bot.states import AddUserFSM
 from src.database.models.user import User
 from src.services.user_service import create_user_from_invite, get_user_by_telegram_id
 from src.utils.constants import ROLE_NAMES, STEP_NAMES
-from src.utils.logger import logger
 
 
 router = Router(name="admin_user_add")
@@ -242,7 +240,7 @@ async def confirm_add_user(
     if new_user.step_number:
         text += f"🔧 Bo'lim: {STEP_NAMES.get(new_user.step_number, new_user.step_number)}\n"
 
-    text += f"\n<i>Endi foydalanuvchi botga /start bossa, tizimga kiradi.</i>"
+    text += "\n<i>Endi foydalanuvchi botga /start bossa, tizimga kiradi.</i>"
 
     await callback.message.edit_text(text)
 

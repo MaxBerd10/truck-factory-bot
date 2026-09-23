@@ -10,10 +10,10 @@ from src.bot.states.worker_states import SubmitWorkFSM
 
 
 __all__ = [
+    "AddTruckFSM",
     "AddUserFSM",
     "CreateInviteFSM",
-    "AddTruckFSM",
     "RegistrationFSM",
-    "SubmitWorkFSM",
     "RejectStepFSM",
+    "SubmitWorkFSM",
 ]

@@ -3,11 +3,6 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from src.database.models.truck import Truck
-from src.utils.constants import (
-    PRIORITY_NAMES,
-    STATUS_NAMES,
-    STEP_SHORT_NAMES,
-)
 
 
 def trucks_list_keyboard(

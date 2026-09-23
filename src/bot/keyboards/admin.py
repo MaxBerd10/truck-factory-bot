@@ -3,7 +3,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from src.database.models.user import User
-from src.utils.constants import ROLE_NAMES, STEP_NAMES
+from src.utils.constants import STEP_NAMES
 
 
 # ==================== ASOSIY MENYU ====================

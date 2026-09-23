@@ -1,5 +1,5 @@
 """Admin — Trucklar boshqaruvi."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.filters import IsAdmin
 from src.bot.keyboards import (
-    admin_main_menu,
     truck_confirm_keyboard,
     truck_detail_keyboard,
     truck_priority_keyboard,
@@ -30,7 +29,6 @@ from src.utils.constants import (
     STATUS_NAMES,
     STEP_NAMES,
 )
-from src.utils.logger import logger
 
 
 router = Router(name="admin_trucks")
@@ -277,7 +275,7 @@ async def process_deadline(
 
     try:
         deadline = datetime.strptime(text, "%Y-%m-%d").replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
     except ValueError:
         await message.answer(
@@ -367,7 +365,7 @@ async def confirm_add_truck(
         text += f"📅 Muddat: {truck.deadline.strftime('%Y-%m-%d')}\n"
 
     text += f"🎯 Prioritet: {role_name}\n\n"
-    text += f"<i>6 ta step avtomatik yaratildi.</i>"
+    text += "<i>6 ta step avtomatik yaratildi.</i>"
 
     await callback.message.edit_text(
         text,

@@ -25,7 +25,6 @@ from src.utils.constants import (
     PRIORITY_NAMES,
     STEP_NAMES,
 )
-from src.utils.logger import logger
 
 
 router = Router(name="qc_review")
@@ -371,7 +370,7 @@ async def _send_review(callback: CallbackQuery, step) -> None:
     if step.worker_comment:
         text += f"\n📝 <b>Izoh:</b>\n<i>{step.worker_comment}</i>\n"
 
-    text += f"\n📊 <b>Qarorni tanlang:</b>"
+    text += "\n📊 <b>Qarorni tanlang:</b>"
 
     if step.media_type == "photo" and step.media_file_id:
         await callback.message.answer_photo(

@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from aiogram import F, Router
-from aiogram.types import BufferedInputFile, CallbackQuery, Message
+from aiogram.types import BufferedInputFile, CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.filters import IsAdmin

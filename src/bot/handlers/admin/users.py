@@ -125,7 +125,7 @@ async def block_user(
         step_name = STEP_NAMES.get(target_user.step_number, f"Step {target_user.step_number}")
         text += f"🔧 Bo'lim: {step_name}\n"
 
-    text += f"\n📊 Holat: 🚫 Bloklangan\n"
+    text += "\n📊 Holat: 🚫 Bloklangan\n"
     text += f"📅 Qo'shilgan: {target_user.created_at.strftime('%Y-%m-%d %H:%M')}"
 
     await callback.message.edit_text(
@@ -179,7 +179,7 @@ async def unblock_user(
         step_name = STEP_NAMES.get(target_user.step_number, f"Step {target_user.step_number}")
         text += f"🔧 Bo'lim: {step_name}\n"
 
-    text += f"\n📊 Holat: ✅ Faol\n"
+    text += "\n📊 Holat: ✅ Faol\n"
     text += f"📅 Qo'shilgan: {target_user.created_at.strftime('%Y-%m-%d %H:%M')}"
 
     await callback.message.edit_text(

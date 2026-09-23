@@ -1,10 +1,9 @@
 """Admin — Invite (taklif) tizimi."""
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from aiogram import Bot, F, Router
 from aiogram.types import CallbackQuery, Message
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.filters import IsAdmin
@@ -120,7 +119,7 @@ async def confirm_invite(
     token = uuid4().hex[:16]
 
     # Muddat: 24 soat
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    expires_at = datetime.now(UTC) + timedelta(hours=24)
 
     invite = Invite(
         token=token,

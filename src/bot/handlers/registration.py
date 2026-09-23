@@ -12,12 +12,10 @@ from src.bot.keyboards import (
 )
 from src.bot.keyboards.registration import registration_skip_phone_keyboard
 from src.bot.states import RegistrationFSM
-from src.config import settings
 from src.database.models.user import User
 from src.services.invite_service import get_invite_by_code, use_invite
-from src.services.user_service import create_user_from_invite, get_user_by_telegram_id
+from src.services.user_service import create_user_from_invite
 from src.utils.constants import ROLE_NAMES, STEP_NAMES
-from src.utils.logger import logger
 
 
 router = Router(name="registration")

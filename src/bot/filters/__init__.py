@@ -9,9 +9,9 @@ from src.bot.filters.role import (
 
 
 __all__ = [
-    "IsRegistered",
-    "IsNotRegistered",
-    "IsWorker",
-    "IsQC",
     "IsAdmin",
+    "IsNotRegistered",
+    "IsQC",
+    "IsRegistered",
+    "IsWorker",
 ]

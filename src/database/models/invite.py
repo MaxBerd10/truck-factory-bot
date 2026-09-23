@@ -1,9 +1,8 @@
 """Taklifnoma (invite link) modeli."""
-from datetime import datetime
-from typing import TYPE_CHECKING
+from datetime import UTC, datetime
 
 from sqlalchemy import BigInteger, Boolean, DateTime, Enum, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.models.base import Base, TimestampMixin
 
@@ -54,8 +53,7 @@ class Invite(Base, TimestampMixin):
         """Muddati o'tganmi?"""
         if self.expires_at is None:
             return False
-        from datetime import timezone
-        return datetime.now(timezone.utc) > self.expires_at
+        return datetime.now(UTC) > self.expires_at
 
     @property
     def is_valid(self) -> bool:

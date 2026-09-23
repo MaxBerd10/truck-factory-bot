@@ -9,16 +9,7 @@ from src.utils.constants import TOTAL_STEPS
 
 
 async def get_admin_stats(session: AsyncSession) -> dict:
-    """Admin uchun umumiy statistika.
-
-    Returns:
-        dict: {
-            trucks: {total, in_progress, completed},
-            steps: {total, pending, in_review, approved, rejected},
-            users: {total, workers, qc, admins, inactive},
-            by_step: {step_number: {pending, in_review, approved, rejected}},
-        }
-    """
+    """Admin uchun umumiy statistika."""
     # ===== Trucklar =====
     total_trucks = (
         await session.execute(select(func.count(Truck.id)))
@@ -105,7 +96,6 @@ async def get_admin_stats(session: AsyncSession) -> dict:
     # ===== Har bir step bo'yicha =====
     by_step = {}
     for step_num in range(1, TOTAL_STEPS + 1):
-        # Har bir holat uchun
         step_data = {}
         for status in ["pending", "in_review", "approved", "rejected"]:
             count = (
@@ -148,7 +138,6 @@ async def get_worker_full_stats(
     worker_id: int,
 ) -> dict:
     """Ishchi uchun to'liq statistika."""
-    # Jami
     total = (
         await session.execute(
             select(func.count(TruckStep.id)).where(
@@ -157,7 +146,6 @@ async def get_worker_full_stats(
         )
     ).scalar() or 0
 
-    # Approved
     approved = (
         await session.execute(
             select(func.count(TruckStep.id))
@@ -166,7 +154,6 @@ async def get_worker_full_stats(
         )
     ).scalar() or 0
 
-    # In review
     in_review = (
         await session.execute(
             select(func.count(TruckStep.id))
@@ -175,7 +162,6 @@ async def get_worker_full_stats(
         )
     ).scalar() or 0
 
-    # Rejected
     rejected = (
         await session.execute(
             select(func.count(TruckStep.id))
@@ -184,8 +170,7 @@ async def get_worker_full_stats(
         )
     ).scalar() or 0
 
-    # Foiz (approved / total)
-    success_rate = 0
+    success_rate: float = 0.0
     if total > 0:
         success_rate = round((approved / total) * 100, 1)
 
@@ -225,8 +210,7 @@ async def get_qc_full_stats(
         )
     ).scalar() or 0
 
-    # Approve foizi
-    approve_rate = 0
+    approve_rate: float = 0.0
     if total > 0:
         approve_rate = round((approved / total) * 100, 1)
 

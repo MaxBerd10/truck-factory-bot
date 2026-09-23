@@ -1,6 +1,6 @@
 """Ishchi — Ish yuborish (FSM)."""
-from uuid import uuid4
 from pathlib import Path
+from uuid import uuid4
 
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext

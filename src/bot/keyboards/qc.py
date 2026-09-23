@@ -4,8 +4,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from src.database.models.truck_step import TruckStep
 from src.utils.constants import (
-    PRIORITY_NAMES,
-    STEP_NAMES,
     STEP_SHORT_NAMES,
 )
 

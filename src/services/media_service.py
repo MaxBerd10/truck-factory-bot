@@ -1,111 +1,106 @@
 """Media fayllarni saqlash servisi."""
-import os
 from pathlib import Path
 from uuid import uuid4
 
 from aiogram import Bot
-from aiogram.types import Message, PhotoSize, Video
+from aiogram.types import Message
 
 from src.config import settings
-from src.utils.logger import logger
-
-
-# Media papkasi
-MEDIA_DIR = Path(settings.MEDIA_ROOT)
-MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 async def save_photo(
-    bot: Bot,
     message: Message,
-    truck_id: int,
-    step_number: int,
+    bot: Bot,
+    subfolder: str = "",
 ) -> tuple[str, str]:
     """Rasmni saqlash.
 
     Returns:
-        (file_id, local_path)
+        tuple: (file_id, local_path)
     """
-    # Eng katta o'lchamdagi rasmni olamiz
-    photo: PhotoSize = message.photo[-1]
+    if not message.photo:
+        raise ValueError("Rasm topilmadi")
 
-    # Faylni yuklab olamiz
-    file = await bot.get_file(photo.file_id)
+    photo = message.photo[-1]
+    file_id = photo.file_id
 
-    # Papka: media/trucks/{truck_id}/step_{step_number}/
-    folder = MEDIA_DIR / "trucks" / str(truck_id) / f"step_{step_number}"
-    folder.mkdir(parents=True, exist_ok=True)
+    file = await bot.get_file(file_id)
+    if not file.file_path:
+        raise ValueError("File path topilmadi")
 
-    # Fayl nomi
     filename = f"{uuid4().hex}.jpg"
-    local_path = folder / filename
 
-    # Yuklab olamiz
+    media_dir = Path(settings.MEDIA_ROOT) / subfolder
+    media_dir.mkdir(parents=True, exist_ok=True)
+    local_path = media_dir / filename
+
     await bot.download_file(file.file_path, destination=str(local_path))
 
-    logger.info(
-        f"📷 Rasm saqlandi: {local_path} "
-        f"(truck_id={truck_id}, step={step_number})"
-    )
-
-    return photo.file_id, str(local_path)
+    return file_id, str(local_path)
 
 
 async def save_video(
-    bot: Bot,
     message: Message,
-    truck_id: int,
-    step_number: int,
+    bot: Bot,
+    subfolder: str = "",
 ) -> tuple[str, str]:
     """Videoni saqlash.
 
     Returns:
-        (file_id, local_path)
+        tuple: (file_id, local_path)
     """
-    video: Video = message.video
+    if not message.video:
+        raise ValueError("Video topilmadi")
 
-    file = await bot.get_file(video.file_id)
+    video = message.video
+    file_id = video.file_id
 
-    folder = MEDIA_DIR / "trucks" / str(truck_id) / f"step_{step_number}"
-    folder.mkdir(parents=True, exist_ok=True)
+    file = await bot.get_file(file_id)
+    if not file.file_path:
+        raise ValueError("File path topilmadi")
 
     filename = f"{uuid4().hex}.mp4"
-    local_path = folder / filename
+
+    media_dir = Path(settings.MEDIA_ROOT) / subfolder
+    media_dir.mkdir(parents=True, exist_ok=True)
+    local_path = media_dir / filename
 
     await bot.download_file(file.file_path, destination=str(local_path))
 
-    logger.info(
-        f"🎥 Video saqlandi: {local_path} "
-        f"(truck_id={truck_id}, step={step_number})"
-    )
-
-    return video.file_id, str(local_path)
+    return file_id, str(local_path)
 
 
 async def save_document(
-    bot: Bot,
     message: Message,
-    truck_id: int,
-    step_number: int,
+    bot: Bot,
+    subfolder: str = "",
 ) -> tuple[str, str]:
-    """Hujjatni saqlash."""
+    """Hujjatni saqlash.
+
+    Returns:
+        tuple: (file_id, local_path)
+    """
+    if not message.document:
+        raise ValueError("Hujjat topilmadi")
+
     document = message.document
+    file_id = document.file_id
 
-    file = await bot.get_file(document.file_id)
-
-    folder = MEDIA_DIR / "trucks" / str(truck_id) / f"step_{step_number}"
-    folder.mkdir(parents=True, exist_ok=True)
+    file = await bot.get_file(file_id)
+    if not file.file_path:
+        raise ValueError("File path topilmadi")
 
     # Kengaytma
-    ext = Path(document.file_name or "file").suffix or ".bin"
+    ext = ".bin"
+    if document.file_name:
+        ext = Path(document.file_name).suffix or ".bin"
+
     filename = f"{uuid4().hex}{ext}"
-    local_path = folder / filename
+
+    media_dir = Path(settings.MEDIA_ROOT) / subfolder
+    media_dir.mkdir(parents=True, exist_ok=True)
+    local_path = media_dir / filename
 
     await bot.download_file(file.file_path, destination=str(local_path))
 
-    logger.info(
-        f"📄 Hujjat saqlandi: {local_path} "
-        f"(truck_id={truck_id}, step={step_number})"
-    )
-
-    return document.file_id, str(local_path)
+    return file_id, str(local_path)

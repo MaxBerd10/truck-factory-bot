@@ -9,9 +9,8 @@ from src.bot.keyboards import (
     qc_history_keyboard,
 )
 from src.database.models.user import User
-from src.services.qc_service import get_qc_history
+from src.services.qc_service import get_qc_history, get_step_for_review
 from src.services.stats_service import get_qc_full_stats
-from src.services.qc_service import get_step_for_review
 from src.utils.constants import (
     PRIORITY_NAMES,
     STEP_NAMES,

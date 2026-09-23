@@ -1,93 +1,71 @@
-"""Loyiha sozlamalari (pydantic-settings asosida)."""
-from functools import lru_cache
+"""Sozlamalar (config)."""
+from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Barcha sozlamalar .env fayldan o'qiladi."""
+    """Bot sozlamalari."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=False,
         extra="ignore",
+        case_sensitive=True,
     )
 
-    # ==== BOT ====
+    # ==== Bot ====
     BOT_TOKEN: str = Field(..., description="Telegram bot token")
-    BOT_USERNAME: str = Field(default="", description="Bot username (@ belgisisiz)")
+    ADMIN_IDS: list[int] = Field(default_factory=list, description="Admin ID lar")
 
-    # ==== ADMIN ====
-    ADMIN_IDS: list[int] = Field(
-        default_factory=list,
-        description="Birinchi adminlar Telegram ID lari",
+    # ==== Environment ====
+    ENVIRONMENT: Literal["development", "production", "testing"] = Field(
+        default="development"
     )
+    LOG_LEVEL: str = Field(default="INFO")
 
-    # ==== DATABASE ====
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    POSTGRES_HOST: str = "postgres"
-    POSTGRES_PORT: int = 5432
-    DB_URL: str
+    # ==== Database ====
+    POSTGRES_USER: str = Field(default="truckbot")
+    POSTGRES_PASSWORD: str = Field(default="truckbot")
+    POSTGRES_DB: str = Field(default="truck_factory")
+    POSTGRES_HOST: str = Field(default="localhost")
+    POSTGRES_PORT: int = Field(default=5432)
 
-    # ==== REDIS ====
-    REDIS_HOST: str = "redis"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
-    REDIS_URL: str
+    DB_URL: str = Field(default="")
+    REDIS_URL: str = Field(default="redis://localhost:6379/0")
 
-    # ==== APP ====
-    ENVIRONMENT: Literal["development", "production"] = "development"
-    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    TIMEZONE: str = "Asia/Tashkent"
+    # ==== Media ====
+    MEDIA_ROOT: str = Field(default="media")
 
-    # ==== MEDIA ====
-    MEDIA_ROOT: str = "/app/media"
-    MAX_FILE_SIZE_MB: int = 50
-
-    # ==== VALIDATORS ====
-    @field_validator("ADMIN_IDS", mode="before")
-    @classmethod
-    def parse_admin_ids(cls, v):
-        """'123,456' -> [123, 456]"""
-        if isinstance(v, str):
-            return [int(x.strip()) for x in v.split(",") if x.strip()]
-        if isinstance(v, int):
-            return [v]
-        return v
-
-    @field_validator("BOT_TOKEN")
-    @classmethod
-    def validate_bot_token(cls, v: str) -> str:
-        """Token formatini tekshirish."""
-        if ":" not in v or len(v) < 30:
-            raise ValueError(
-                "BOT_TOKEN noto'g'ri formatda. "
-                "@BotFather dan yangi token oling."
-            )
-        return v
-
-    @property
-    def is_production(self) -> bool:
-        return self.ENVIRONMENT == "production"
-
+    # ==== Properties ====
     @property
     def is_development(self) -> bool:
+        """Development muhitda ishlayaptimi?"""
         return self.ENVIRONMENT == "development"
 
     @property
-    def max_file_size_bytes(self) -> int:
-        return self.MAX_FILE_SIZE_MB * 1024 * 1024
+    def is_production(self) -> bool:
+        """Production muhitda ishlayaptimi?"""
+        return self.ENVIRONMENT == "production"
+
+    @property
+    def media_path(self) -> Path:
+        """Media papkasi (Path)."""
+        return Path(self.MEDIA_ROOT)
+
+    def model_post_init(self, __context) -> None:
+        """DB_URL avtomatik yasash (agar bo'sh bo'lsa)."""
+        if not self.DB_URL:
+            object.__setattr__(
+                self,
+                "DB_URL",
+                f"postgresql+asyncpg://{self.POSTGRES_USER}:"
+                f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
+                f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}",
+            )
 
 
-@lru_cache
-def get_settings() -> Settings:
-    """Sozlamalarni bir marta yuklab, cache da saqlaydi."""
-    return Settings()
-
-
-settings = get_settings()
+# Global settings instance
+settings = Settings()  # type: ignore[call-arg]

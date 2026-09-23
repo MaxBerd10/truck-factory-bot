@@ -7,7 +7,6 @@ from src.bot.keyboards import main_menu_keyboard
 from src.database.models.user import User
 from src.services.user_service import create_admin_if_needed
 from src.utils.constants import ROLE_NAMES, STEP_NAMES
-from src.utils.logger import logger
 
 
 router = Router(name="common")
@@ -114,7 +113,7 @@ async def callback_main_menu(
 
     role_name = ROLE_NAMES.get(user.role, user.role)
 
-    text = f"🏠 <b>Asosiy menyu</b>\n\n"
+    text = "🏠 <b>Asosiy menyu</b>\n\n"
     text += f"👋 Salom, <b>{user.full_name}</b>!\n"
     text += f"🎭 Rol: {role_name}\n"
 

@@ -1,7 +1,5 @@
 """Excel hisobot servisi."""
-from datetime import datetime
 from io import BytesIO
-from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.styles import (
@@ -37,7 +35,7 @@ BORDER = Border(
 )
 
 
-def _style_header(ws, row: int, num_cols: int):
+def _style_header(ws, row: int, num_cols: int) -> None:
     """Header uslubini qo'llash."""
     for col in range(1, num_cols + 1):
         cell = ws.cell(row=row, column=col)
@@ -47,7 +45,7 @@ def _style_header(ws, row: int, num_cols: int):
         cell.border = BORDER
 
 
-def _auto_width(ws):
+def _auto_width(ws) -> None:
     """Ustun kengliklarini avtomatik sozlash."""
     for column in ws.columns:
         max_length = 0
@@ -65,15 +63,7 @@ async def generate_trucks_report(
     session: AsyncSession,
     status_filter: str | None = None,
 ) -> BytesIO:
-    """Trucklar hisoboti (Excel).
-
-    Args:
-        session: DB sessiya
-        status_filter: 'in_progress', 'completed' yoki None (barchasi)
-
-    Returns:
-        BytesIO: Excel fayl
-    """
+    """Trucklar hisoboti (Excel)."""
     stmt = (
         select(Truck)
         .options(selectinload(Truck.steps))
@@ -90,7 +80,6 @@ async def generate_trucks_report(
     ws = wb.active
     ws.title = "Trucklar"
 
-    # Header
     headers = [
         "ID",
         "Serial",
@@ -116,8 +105,7 @@ async def generate_trucks_report(
         }
         status_name = status_map.get(truck.status, truck.status)
 
-        # Davomiylik
-        duration = ""
+        duration: int | str = ""
         if truck.completed_at and truck.created_at:
             delta = truck.completed_at - truck.created_at
             duration = delta.days
@@ -139,8 +127,9 @@ async def generate_trucks_report(
             duration,
         ])
 
-    # Borders
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=len(headers)):
+    for row in ws.iter_rows(
+        min_row=2, max_row=ws.max_row, max_col=len(headers)
+    ):
         for cell in row:
             cell.border = BORDER
 
@@ -157,15 +146,7 @@ async def generate_steps_report(
     session: AsyncSession,
     truck_id: int | None = None,
 ) -> BytesIO:
-    """Steplar hisoboti (Excel).
-
-    Args:
-        session: DB sessiya
-        truck_id: Agar berilsa, faqat shu truckning steplari
-
-    Returns:
-        BytesIO: Excel fayl
-    """
+    """Steplar hisoboti (Excel)."""
     stmt = (
         select(TruckStep)
         .options(
@@ -203,7 +184,9 @@ async def generate_steps_report(
     _style_header(ws, 1, len(headers))
 
     for step in steps:
-        step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
+        step_name = STEP_NAMES.get(
+            step.step_number, f"Step {step.step_number}"
+        )
 
         status_map = {
             "pending": "Kutilmoqda",
@@ -213,8 +196,7 @@ async def generate_steps_report(
         }
         status_name = status_map.get(step.status, step.status)
 
-        # Davomiylik
-        duration = ""
+        duration: float | str = ""
         if step.submitted_at and step.reviewed_at:
             delta = step.reviewed_at - step.submitted_at
             duration = round(delta.total_seconds() / 3600, 1)
@@ -237,7 +219,9 @@ async def generate_steps_report(
             duration,
         ])
 
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=len(headers)):
+    for row in ws.iter_rows(
+        min_row=2, max_row=ws.max_row, max_col=len(headers)
+    ):
         for cell in row:
             cell.border = BORDER
 

@@ -1,5 +1,5 @@
 """Kunlik hisobot servisi."""
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from aiogram import Bot
 from sqlalchemy import func, select
@@ -24,7 +24,7 @@ async def get_daily_summary(session: AsyncSession) -> dict:
             "steps_rejected": int,
         }
     """
-    today_start = datetime.now(timezone.utc).replace(
+    today_start = datetime.now(UTC).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
     today_end = today_start + timedelta(days=1)

@@ -1,6 +1,6 @@
 """Invite link bilan ishlash servisi."""
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +35,7 @@ async def create_invite(
 
     expires_at = None
     if expires_in_hours:
-        expires_at = datetime.now(timezone.utc) + timedelta(hours=expires_in_hours)
+        expires_at = datetime.now(UTC) + timedelta(hours=expires_in_hours)
 
     invite = Invite(
         code=code,
@@ -71,7 +71,7 @@ async def get_active_invites(
     limit: int = 50,
 ) -> list[Invite]:
     """Faol (ishlatilmagan va muddati o'tmagan) invite larni olish."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     stmt = (
         select(Invite)
         .where(Invite.is_used == False)  # noqa: E712
@@ -93,7 +93,7 @@ async def use_invite(
     """Invite ni ishlatilgan deb belgilash."""
     invite.is_used = True
     invite.used_by = used_by_telegram_id
-    invite.used_at = datetime.now(timezone.utc)
+    invite.used_at = datetime.now(UTC)
     await session.flush()
 
     logger.info(

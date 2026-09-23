@@ -1,8 +1,10 @@
 """Grafik servisi (matplotlib)."""
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 
 import matplotlib
+
+
 matplotlib.use("Agg")  # GUI siz
 import matplotlib.pyplot as plt
 from sqlalchemy import func, select
@@ -24,7 +26,7 @@ async def generate_monthly_chart(session: AsyncSession) -> BytesIO:
         BytesIO: PNG rasm
     """
     # Oxirgi 30 kun
-    today = datetime.now(timezone.utc).replace(
+    today = datetime.now(UTC).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
     start_date = today - timedelta(days=29)

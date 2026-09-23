@@ -6,9 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.bot.filters import IsWorker
 from src.bot.keyboards import worker_history_keyboard
 from src.database.models.user import User
-from src.services.truck_step_service import get_worker_history
 from src.services.stats_service import get_worker_full_stats
-from src.utils.constants import STEP_NAMES
+from src.services.truck_step_service import get_worker_history
 
 
 router = Router(name="worker_history")

@@ -60,13 +60,13 @@ async def submit_from_menu(
                 truck=task.truck.serial_number,
                 step=step_name,
             ),
-            reply_markup=worker_tasks_keyboard(tasks),
+            reply_markup=worker_tasks_keyboard(tasks, lang),
         )
         return
 
     await message.answer(
         _("worker.multiple_tasks_prompt", language=lang, count=len(tasks)),
-        reply_markup=worker_tasks_keyboard(tasks),
+        reply_markup=worker_tasks_keyboard(tasks, lang),
     )
 
 
@@ -115,14 +115,11 @@ async def start_submit(
     step_name = get_step_name(step.step_number, lang)
 
     await callback.message.edit_text(
-        _(
-            "worker.submit_title",
-            language=lang,
-        )
+        _("worker.submit_title", language=lang)
         + f"\n\n🚛 <b>{step.truck.serial_number}</b>\n"
         + f"🔧 <b>{step_name}</b>\n\n"
         + _("worker.submit_media_prompt", language=lang),
-        reply_markup=worker_submit_cancel_keyboard(),
+        reply_markup=worker_submit_cancel_keyboard(lang),
     )
 
 
@@ -144,7 +141,7 @@ async def process_photo(
 
     await message.answer(
         _("worker.submit_photo_received", language=lang),
-        reply_markup=worker_submit_skip_comment_keyboard(),
+        reply_markup=worker_submit_skip_comment_keyboard(lang),
     )
 
 
@@ -166,7 +163,7 @@ async def process_video(
 
     await message.answer(
         _("worker.submit_video_received", language=lang),
-        reply_markup=worker_submit_skip_comment_keyboard(),
+        reply_markup=worker_submit_skip_comment_keyboard(lang),
     )
 
 
@@ -188,7 +185,7 @@ async def process_document(
 
     await message.answer(
         _("worker.submit_doc_received", language=lang),
-        reply_markup=worker_submit_skip_comment_keyboard(),
+        reply_markup=worker_submit_skip_comment_keyboard(lang),
     )
 
 
@@ -204,7 +201,7 @@ async def invalid_media(
 
     await message.answer(
         _("worker.submit_invalid_media", language=lang),
-        reply_markup=worker_submit_cancel_keyboard(),
+        reply_markup=worker_submit_cancel_keyboard(lang),
     )
 
 
@@ -240,7 +237,7 @@ async def process_comment(
     if len(text) > 1000:
         await message.answer(
             _("worker.submit_comment_too_long", language=lang, len=len(text)),
-            reply_markup=worker_submit_skip_comment_keyboard(),
+            reply_markup=worker_submit_skip_comment_keyboard(lang),
         )
         return
 
@@ -351,7 +348,7 @@ async def confirm_submit(
             truck=step.truck.serial_number,
             step=step_name,
         ),
-        reply_markup=worker_after_submit_keyboard(),
+        reply_markup=worker_after_submit_keyboard(lang),
     )
 
 
@@ -372,7 +369,7 @@ async def restart_submit(
 
     await callback.message.edit_text(
         _("worker.submit_media_prompt", language=lang),
-        reply_markup=worker_submit_cancel_keyboard(),
+        reply_markup=worker_submit_cancel_keyboard(lang),
     )
 
 
@@ -429,15 +426,15 @@ async def _show_submit_confirmation(
         try:
             await message.edit_text(
                 text,
-                reply_markup=worker_submit_confirm_keyboard(),
+                reply_markup=worker_submit_confirm_keyboard(lang),
             )
         except Exception:
             await message.answer(
                 text,
-                reply_markup=worker_submit_confirm_keyboard(),
+                reply_markup=worker_submit_confirm_keyboard(lang),
             )
     else:
         await message.answer(
             text,
-            reply_markup=worker_submit_confirm_keyboard(),
+            reply_markup=worker_submit_confirm_keyboard(lang),
         )

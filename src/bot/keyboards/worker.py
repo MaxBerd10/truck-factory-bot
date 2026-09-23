@@ -1,14 +1,15 @@
-"""Worker uchun keyboard lar."""
-from aiogram.types import InlineKeyboardButton
+"""Worker uchun keyboard lar (i18n bilan)."""
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from src.database.models.truck_step import TruckStep
-from src.utils.constants import (
-    STEP_SHORT_NAMES,
-)
+from src.services.i18n_service import _, get_step_name
 
 
-def worker_tasks_keyboard(tasks: list[TruckStep]):
+def worker_tasks_keyboard(
+    tasks: list[TruckStep],
+    language: str = "uz",
+) -> InlineKeyboardMarkup:
     """Ishchining vazifalari uchun keyboard."""
     builder = InlineKeyboardBuilder()
 
@@ -23,11 +24,11 @@ def worker_tasks_keyboard(tasks: list[TruckStep]):
             "urgent": "🔴",
         }.get(truck.priority, "⚪")
 
-        # Status icon
+        # Status text (qisqa)
         if step.is_rejected:
-            status_text = "❌ Qaytarilgan"
+            status_text = "❌"
         else:
-            status_text = "⏳ Yangi"
+            status_text = "⏳"
 
         builder.button(
             text=f"{priority_icon} {truck.serial_number} — {status_text}",
@@ -37,32 +38,39 @@ def worker_tasks_keyboard(tasks: list[TruckStep]):
     builder.adjust(1)
 
     builder.row(
-        InlineKeyboardButton(text="🔄 Yangilash", callback_data="worker_refresh"),
-        InlineKeyboardButton(text="🔙 Asosiy menyu", callback_data="main_menu"),
+        InlineKeyboardButton(
+            text=f"🔄 {_('common.retry', language=language)}",
+            callback_data="worker_refresh",
+        ),
+        InlineKeyboardButton(
+            text=f"🔙 {_('common.main_menu', language=language)}",
+            callback_data="main_menu",
+        ),
     )
 
     return builder.as_markup()
 
 
-def worker_task_detail_keyboard(step: TruckStep):
+def worker_task_detail_keyboard(
+    step: TruckStep,
+    language: str = "uz",
+) -> InlineKeyboardMarkup:
     """Bitta vazifa tafsiloti uchun keyboard."""
     builder = InlineKeyboardBuilder()
 
-    # Agar rejected bo'lsa — tahrirlash
     if step.is_rejected:
         builder.button(
-            text="✏️ Qayta yuborish",
+            text=f"✏️ {_('worker.submit_title', language=language)}",
             callback_data=f"worker_submit:{step.id}",
         )
     else:
-        # Yangi ish
         builder.button(
-            text="📤 Ish yuborish",
+            text=f"📤 {_('worker.menu_submit', language=language)}",
             callback_data=f"worker_submit:{step.id}",
         )
 
     builder.button(
-        text="🔙 Vazifalarimga",
+        text=f"🔙 {_('worker.menu_tasks', language=language)}",
         callback_data="worker_refresh",
     )
 
@@ -70,50 +78,74 @@ def worker_task_detail_keyboard(step: TruckStep):
     return builder.as_markup()
 
 
-def worker_submit_cancel_keyboard():
+def worker_submit_cancel_keyboard(
+    language: str = "uz",
+) -> InlineKeyboardMarkup:
     """Yuborishni bekor qilish."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="❌ Bekor qilish", callback_data="worker_submit_cancel")
+    builder.button(
+        text=f"❌ {_('common.cancel', language=language)}",
+        callback_data="worker_submit_cancel",
+    )
     return builder.as_markup()
 
 
-def worker_submit_skip_comment_keyboard():
+def worker_submit_skip_comment_keyboard(
+    language: str = "uz",
+) -> InlineKeyboardMarkup:
     """Izohni o'tkazib yuborish."""
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="⏭ Izohsiz yuborish",
+        text=f"⏭ {_('common.skip', language=language)}",
         callback_data="worker_submit_skip_comment",
     )
-    builder.button(text="❌ Bekor qilish", callback_data="worker_submit_cancel")
+    builder.button(
+        text=f"❌ {_('common.cancel', language=language)}",
+        callback_data="worker_submit_cancel",
+    )
     builder.adjust(2)
     return builder.as_markup()
 
 
-def worker_submit_confirm_keyboard():
+def worker_submit_confirm_keyboard(
+    language: str = "uz",
+) -> InlineKeyboardMarkup:
     """Tasdiqlash."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="✅ Yuborish", callback_data="worker_submit_confirm")
-    builder.button(text="✏️ Qaytadan", callback_data="worker_submit_restart")
-    builder.button(text="❌ Bekor qilish", callback_data="worker_submit_cancel")
+    builder.button(
+        text=f"✅ {_('common.confirm', language=language)}",
+        callback_data="worker_submit_confirm",
+    )
+    builder.button(
+        text=f"✏️ {_('common.retry', language=language)}",
+        callback_data="worker_submit_restart",
+    )
+    builder.button(
+        text=f"❌ {_('common.cancel', language=language)}",
+        callback_data="worker_submit_cancel",
+    )
     builder.adjust(2, 1)
     return builder.as_markup()
 
 
-def worker_history_keyboard(history: list[TruckStep], back: bool = True):
+def worker_history_keyboard(
+    history: list[TruckStep],
+    language: str = "uz",
+    back: bool = True,
+) -> InlineKeyboardMarkup:
     """Tarix uchun keyboard."""
     builder = InlineKeyboardBuilder()
 
     for step in history:
         truck = step.truck
 
-        # Status icon
         status_icon = {
             "in_review": "🔍",
             "approved": "✅",
             "rejected": "❌",
         }.get(step.status, "❓")
 
-        step_name = STEP_SHORT_NAMES.get(step.step_number, f"Step {step.step_number}")
+        step_name = get_step_name(step.step_number, language)
 
         builder.button(
             text=f"{status_icon} {truck.serial_number} — {step_name}",
@@ -124,24 +156,30 @@ def worker_history_keyboard(history: list[TruckStep], back: bool = True):
 
     if back:
         builder.row(
-            InlineKeyboardButton(text="🔙 Asosiy menyu", callback_data="main_menu"),
+            InlineKeyboardButton(
+                text=f"🔙 {_('common.main_menu', language=language)}",
+                callback_data="main_menu",
+            ),
         )
 
     return builder.as_markup()
 
 
-def worker_history_detail_keyboard(step: TruckStep):
+def worker_history_detail_keyboard(
+    step: TruckStep,
+    language: str = "uz",
+) -> InlineKeyboardMarkup:
     """Tarix tafsiloti uchun keyboard."""
     builder = InlineKeyboardBuilder()
 
     if step.is_rejected:
         builder.button(
-            text="✏️ Qayta yuborish",
+            text=f"✏️ {_('worker.submit_title', language=language)}",
             callback_data=f"worker_submit:{step.id}",
         )
 
     builder.button(
-        text="🔙 Tarixga",
+        text=f"🔙 {_('worker.history_title', language=language)}",
         callback_data="worker_history",
     )
 
@@ -149,11 +187,18 @@ def worker_history_detail_keyboard(step: TruckStep):
     return builder.as_markup()
 
 
-
-def worker_after_submit_keyboard():
+def worker_after_submit_keyboard(
+    language: str = "uz",
+) -> InlineKeyboardMarkup:
     """Ish yuborilgandan keyin tugmalar."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="📋 Vazifalarimga", callback_data="worker_refresh")
-    builder.button(text="🔙 Asosiy menyu", callback_data="main_menu")
+    builder.button(
+        text=f"📋 {_('worker.menu_tasks', language=language)}",
+        callback_data="worker_refresh",
+    )
+    builder.button(
+        text=f"🔙 {_('common.main_menu', language=language)}",
+        callback_data="main_menu",
+    )
     builder.adjust(2)
     return builder.as_markup()

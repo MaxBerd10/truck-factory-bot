@@ -23,7 +23,7 @@ from src.services.truck_step_service import (
 router = Router(name="worker_tasks")
 
 
-# ==== "Mening vazifalarim" (barcha tillarda) ====
+# ==================== "Mening vazifalarim" ====================
 @router.message(IsWorker(), text_key("worker.menu_tasks"))
 async def show_tasks(
     message: Message,
@@ -34,7 +34,7 @@ async def show_tasks(
     await _send_tasks(message, user, session)
 
 
-# ==== Yangilash ====
+# ==================== Yangilash ====================
 @router.callback_query(IsWorker(), F.data == "worker_refresh")
 async def refresh_tasks(
     callback: CallbackQuery,
@@ -47,7 +47,7 @@ async def refresh_tasks(
     await _edit_tasks(callback, user, session)
 
 
-# ==== Vazifa tafsiloti ====
+# ==================== Vazifa tafsiloti ====================
 @router.callback_query(IsWorker(), F.data.startswith("worker_task:"))
 async def view_task_detail(
     callback: CallbackQuery,
@@ -110,11 +110,11 @@ async def view_task_detail(
 
     await callback.message.edit_text(
         text,
-        reply_markup=worker_task_detail_keyboard(step),
+        reply_markup=worker_task_detail_keyboard(step, lang),
     )
 
 
-# ==== Yordamchi ====
+# ==================== Yordamchi ====================
 async def _send_tasks(
     message: Message,
     user: User,
@@ -152,7 +152,7 @@ async def _send_tasks(
 
     await message.answer(
         text,
-        reply_markup=worker_tasks_keyboard(tasks),
+        reply_markup=worker_tasks_keyboard(tasks, lang),
     )
 
 
@@ -199,10 +199,10 @@ async def _edit_tasks(
     try:
         await callback.message.edit_text(
             text,
-            reply_markup=worker_tasks_keyboard(tasks),
+            reply_markup=worker_tasks_keyboard(tasks, lang),
         )
     except Exception:
         await callback.message.answer(
             text,
-            reply_markup=worker_tasks_keyboard(tasks),
+            reply_markup=worker_tasks_keyboard(tasks, lang),
         )

@@ -1,45 +1,67 @@
-"""Rol bo'yicha filterlar."""
+"""Rol filterlari (IsAdmin, IsWorker, IsQC va h.k.)."""
+from typing import Any
+
 from aiogram.filters import BaseFilter
-from aiogram.types import TelegramObject
+from aiogram.types import CallbackQuery, Message
 
 from src.database.models.user import User
 
 
 class IsRegistered(BaseFilter):
-    """Faqat ro'yxatdan o'tgan va aktiv foydalanuvchilar uchun."""
+    """Faqat ro'yxatdan o'tgan foydalanuvchilar."""
 
-    async def __call__(self, event: TelegramObject, **kwargs) -> bool:
-        user: User | None = kwargs.get("user")
-        return user is not None and user.is_active
+    async def __call__(
+        self,
+        event: Message | CallbackQuery,
+        user: User | None = None,
+        **kwargs: Any,
+    ) -> bool:
+        return user is not None
 
 
 class IsNotRegistered(BaseFilter):
-    """Faqat ro'yxatdan o'tmagan foydalanuvchilar uchun."""
+    """Faqat ro'yxatdan o'tmagan foydalanuvchilar."""
 
-    async def __call__(self, event: TelegramObject, **kwargs) -> bool:
-        user: User | None = kwargs.get("user")
+    async def __call__(
+        self,
+        event: Message | CallbackQuery,
+        user: User | None = None,
+        **kwargs: Any,
+    ) -> bool:
         return user is None
 
 
 class IsWorker(BaseFilter):
-    """Faqat ishchilar uchun (worker, aktiv)."""
+    """Faqat ishchilar (worker)."""
 
-    async def __call__(self, event: TelegramObject, **kwargs) -> bool:
-        user: User | None = kwargs.get("user")
-        return user is not None and user.is_active and user.is_worker
+    async def __call__(
+        self,
+        event: Message | CallbackQuery,
+        user: User | None = None,
+        **kwargs: Any,
+    ) -> bool:
+        return user is not None and user.role == "worker"
 
 
 class IsQC(BaseFilter):
-    """Faqat sifat nazoratchilar uchun (QC, aktiv)."""
+    """Faqat sifat nazoratchilari (qc)."""
 
-    async def __call__(self, event: TelegramObject, **kwargs) -> bool:
-        user: User | None = kwargs.get("user")
-        return user is not None and user.is_active and user.is_qc
+    async def __call__(
+        self,
+        event: Message | CallbackQuery,
+        user: User | None = None,
+        **kwargs: Any,
+    ) -> bool:
+        return user is not None and user.role == "qc"
 
 
 class IsAdmin(BaseFilter):
-    """Faqat adminlar uchun (aktiv)."""
+    """Faqat administratorlar."""
 
-    async def __call__(self, event: TelegramObject, **kwargs) -> bool:
-        user: User | None = kwargs.get("user")
-        return user is not None and user.is_active and user.is_admin
+    async def __call__(
+        self,
+        event: Message | CallbackQuery,
+        user: User | None = None,
+        **kwargs: Any,
+    ) -> bool:
+        return user is not None and user.role == "admin"

@@ -9,6 +9,7 @@ from openpyxl.styles import (
     PatternFill,
     Side,
 )
+from openpyxl.worksheet.worksheet import Worksheet
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -35,7 +36,7 @@ BORDER = Border(
 )
 
 
-def _style_header(ws, row: int, num_cols: int) -> None:
+def _style_header(ws: Worksheet, row: int, num_cols: int) -> None:
     """Header uslubini qo'llash."""
     for col in range(1, num_cols + 1):
         cell = ws.cell(row=row, column=col)
@@ -45,7 +46,7 @@ def _style_header(ws, row: int, num_cols: int) -> None:
         cell.border = BORDER
 
 
-def _auto_width(ws) -> None:
+def _auto_width(ws: Worksheet) -> None:
     """Ustun kengliklarini avtomatik sozlash."""
     for column in ws.columns:
         max_length = 0

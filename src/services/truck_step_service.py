@@ -1,7 +1,8 @@
 """TruckStep bilan ishlash servisi."""
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from aiogram import Bot
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,14 +18,7 @@ async def get_worker_tasks(
     worker_id: int,
     step_number: int,
 ) -> list[TruckStep]:
-    """Ishchining vazifalarini olish.
-
-    Faqat:
-    - Shu ishchining stepidagi
-    - `pending` yoki `rejected` holatidagi
-    - Truck `in_progress` bo'lgan
-    - **Truck.current_step == step_number** (joriy step)
-    """
+    """Ishchining vazifalarini olish."""
     stmt = (
         select(TruckStep)
         .join(Truck, TruckStep.truck_id == Truck.id)
@@ -88,7 +82,7 @@ async def submit_step(
     media_file_id: str,
     media_local_path: str | None,
     worker_comment: str | None,
-    bot,
+    bot: Bot,
 ) -> None:
     """Ishni yuborish (QC ga)."""
     # Step ni yangilash
@@ -116,7 +110,6 @@ async def submit_step(
 
     # ==== QC ga bildirishnoma ====
     try:
-        # Faol QC larni olish
         qc_stmt = select(User).where(
             User.role == "qc",
             User.is_active == True,  # noqa: E712
@@ -135,7 +128,9 @@ async def submit_step(
                 f"{len(qc_telegram_ids)} ta QC"
             )
         else:
-            logger.warning("⚠️ Faol QC topilmadi — bildirishnoma yuborilmadi")
+            logger.warning(
+                "⚠️ Faol QC topilmadi — bildirishnoma yuborilmadi"
+            )
 
     except Exception as e:
         logger.error(f"❌ QC ga bildirishnoma yuborishda xato: {e}")
@@ -164,8 +159,6 @@ async def get_worker_stats(
     worker_id: int,
 ) -> dict:
     """Ishchining statistikasi."""
-    from sqlalchemy import func
-
     total = (
         await session.execute(
             select(func.count(TruckStep.id)).where(

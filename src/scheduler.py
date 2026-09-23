@@ -1,4 +1,5 @@
 """APScheduler — kunlik hisobot uchun."""
+from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -13,7 +14,7 @@ from src.utils.logger import logger
 scheduler = AsyncIOScheduler(timezone="Asia/Tashkent")
 
 
-async def daily_report_job(bot) -> None:
+async def daily_report_job(bot: Bot) -> None:
     """Kunlik hisobot job i."""
     try:
         async with async_session_maker() as session:
@@ -26,8 +27,11 @@ async def daily_report_job(bot) -> None:
         logger.exception(f"❌ Kunlik hisobot xatosi: {e}")
 
 
-def setup_scheduler(bot) -> None:
-    """Schedulerni sozlash."""
+def setup_scheduler(bot: Bot) -> None:
+    """Schedulerni sozlash.
+
+    Kunlik hisobot: har kuni soat 18:00 (Toshkent vaqti).
+    """
     scheduler.add_job(
         daily_report_job,
         trigger=CronTrigger(hour=18, minute=0),

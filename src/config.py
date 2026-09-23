@@ -55,7 +55,7 @@ class Settings(BaseSettings):
         """Media papkasi (Path)."""
         return Path(self.MEDIA_ROOT)
 
-    def model_post_init(self, __context) -> None:
+    def model_post_init(self, __context: object) -> None:
         """DB_URL avtomatik yasash (agar bo'sh bo'lsa)."""
         if not self.DB_URL:
             object.__setattr__(

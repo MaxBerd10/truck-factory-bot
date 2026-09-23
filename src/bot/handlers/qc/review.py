@@ -15,94 +15,93 @@ from src.bot.keyboards import (
 )
 from src.bot.states import RejectStepFSM
 from src.database.models.user import User
+from src.services.i18n_service import _, get_step_name
 from src.services.qc_service import (
     approve_step,
     get_qc_queue,
     get_step_for_review,
     reject_step,
 )
-from src.utils.constants import (
-    PRIORITY_NAMES,
-    STEP_NAMES,
-)
 
 
 router = Router(name="qc_review")
 
 
-# ==== Ishni ko'rish ====
+# ==================== Ishni ko'rish ====================
 @router.callback_query(IsQC(), F.data.startswith("qc_view:"))
 async def view_for_review(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
     session: AsyncSession,
 ):
     """Ishni tekshirish uchun ko'rish."""
     await state.clear()
+    lang = user.language or "uz"
 
     step_id = int(callback.data.split(":")[1])
     step = await get_step_for_review(session, step_id)
 
     if not step:
         await callback.answer(
-            "⚠️ Ish topilmadi\n\n"
-            "Navbatni yangilang.",
+            _("common.not_found", language=lang),
             show_alert=True,
         )
         return
 
     if step.status != "in_review":
         await callback.answer(
-            "⚠️ Bu ish allaqachon tekshirilgan\n\n"
-            "Boshqa ishni tanlang.",
+            _("qc.already_reviewed", language=lang),
             show_alert=True,
         )
         return
 
     await callback.answer()
-    await _send_review(callback, step)
+    await _send_review(callback, step, lang)
 
 
-# ==== Approve — confirm ====
+# ==================== Approve — confirm ====================
 @router.callback_query(IsQC(), F.data.startswith("qc_approve:"))
 async def ask_approve(
     callback: CallbackQuery,
+    user: User,
     session: AsyncSession,
 ):
     """Tasdiqlashni so'rash."""
+    lang = user.language or "uz"
     step_id = int(callback.data.split(":")[1])
     step = await get_step_for_review(session, step_id)
 
     if not step or step.status != "in_review":
         await callback.answer(
-            "⚠️ Bu ish allaqachon tekshirilgan",
+            _("qc.already_reviewed", language=lang),
             show_alert=True,
         )
         return
 
     await callback.answer()
 
-    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
+    step_name = get_step_name(step.step_number, lang)
 
     text = (
-        f"✅ <b>Tasdiqlash</b>\n\n"
-        f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
-        f"🔧 Step: <b>{step_name}</b>\n\n"
-        f"<b>Ishni tasdiqlaysizmi?</b>\n\n"
+        f"{_('qc.approve_title', language=lang)}\n\n"
+        f"🚛 <b>{step.truck.serial_number}</b>\n"
+        f"🔧 <b>{step_name}</b>\n\n"
+        f"<b>{_('qc.approve_question', language=lang)}</b>\n\n"
     )
 
     if step.step_number < 6:
-        text += "<i>Shundan keyin truck keyingi stepga o'tadi.</i>"
+        text += f"<i>{_('qc.approve_next_step', language=lang)}</i>"
     else:
-        text += "<i>Bu oxirgi step — truck TAYYOR bo'ladi!</i>"
+        text += f"<i>{_('qc.approve_last_step', language=lang)}</i>"
 
     await callback.message.answer(
         text,
-        reply_markup=qc_approve_confirm_keyboard(step_id),
+        reply_markup=qc_approve_confirm_keyboard(step_id, lang),
     )
 
 
-# ==== Approve — confirm ====
+# ==================== Approve — confirm ====================
 @router.callback_query(IsQC(), F.data.startswith("qc_approve_confirm:"))
 async def confirm_approve(
     callback: CallbackQuery,
@@ -111,62 +110,66 @@ async def confirm_approve(
     bot: Bot,
 ):
     """Tasdiqlashni amalga oshirish."""
-    step_id = int(callback.data.split(":")[1])
-    step = await get_step_for_review(session, step_id)
-
-    if not step or step.status != "in_review":
-        await callback.answer("❌ Xato", show_alert=True)
-        return
-
-    # Tasdiqlash + bildirishnoma
-    truck = await approve_step(session, step, qc_id=user.id, bot=bot)
-
-    await callback.answer("✅ Tasdiqlandi", show_alert=False)
-
-    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
-
-    if truck.is_completed:
-        text = (
-            f"🎉 <b>TRUCK TAYYOR!</b>\n\n"
-            f"🚛 <b>{truck.serial_number}</b>\n"
-            f"🏭 {truck.model or '—'}\n"
-            f"👤 {truck.customer or '—'}\n\n"
-            f"✅ Barcha 6 ta step tasdiqlandi!\n\n"
-            f"💡 <i>Buyurtmachi bilan bog'lanishingiz mumkin.</i>"
-        )
-    else:
-        next_step_name = STEP_NAMES.get(
-            truck.current_step, f"Step {truck.current_step}"
-        )
-        text = (
-            f"✅ <b>Tasdiqlandi!</b>\n\n"
-            f"🚛 {truck.serial_number}\n"
-            f"🔧 {step_name} ✅\n\n"
-            f"📍 Keyingi step: <b>{next_step_name}</b>\n\n"
-            f"💡 <i>Endi keyingi step ishchisi ishlashi mumkin.</i>"
-        )
-
-    # Tugmalar bilan yuboramiz
-    await callback.message.answer(
-        text,
-        reply_markup=qc_after_action_keyboard(),
-    )
-
-
-# ==== Reject — sabab so'rash ====
-@router.callback_query(IsQC(), F.data.startswith("qc_reject:"))
-async def ask_reject(
-    callback: CallbackQuery,
-    state: FSMContext,
-    session: AsyncSession,
-):
-    """Rad etish sababini so'rash."""
+    lang = user.language or "uz"
     step_id = int(callback.data.split(":")[1])
     step = await get_step_for_review(session, step_id)
 
     if not step or step.status != "in_review":
         await callback.answer(
-            "⚠️ Bu ish allaqachon tekshirilgan",
+            _("common.error_generic", language=lang),
+            show_alert=True,
+        )
+        return
+
+    truck = await approve_step(session, step, qc_id=user.id, bot=bot)
+
+    await callback.answer(
+        _("qc.approve_success_alert", language=lang),
+        show_alert=False,
+    )
+
+    step_name = get_step_name(step.step_number, lang)
+
+    if truck.is_completed:
+        text = _(
+            "qc.approve_truck_ready",
+            language=lang,
+            truck=truck.serial_number,
+            model=truck.model or "—",
+            customer=truck.customer or "—",
+        )
+    else:
+        next_step_name = get_step_name(truck.current_step, lang)
+        text = _(
+            "qc.approve_success",
+            language=lang,
+            truck=truck.serial_number,
+            step=step_name,
+            next_step=next_step_name,
+        )
+
+    await callback.message.answer(
+        text,
+        reply_markup=qc_after_action_keyboard(lang),
+    )
+
+
+# ==================== Reject — sabab so'rash ====================
+@router.callback_query(IsQC(), F.data.startswith("qc_reject:"))
+async def ask_reject(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+):
+    """Rad etish sababini so'rash."""
+    lang = user.language or "uz"
+    step_id = int(callback.data.split(":")[1])
+    step = await get_step_for_review(session, step_id)
+
+    if not step or step.status != "in_review":
+        await callback.answer(
+            _("qc.already_reviewed", language=lang),
             show_alert=True,
         )
         return
@@ -177,45 +180,39 @@ async def ask_reject(
     await state.update_data(step_id=step_id)
     await state.set_state(RejectStepFSM.reason)
 
-    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
+    step_name = get_step_name(step.step_number, lang)
 
     await callback.message.answer(
-        f"❌ <b>Rad etish</b>\n\n"
-        f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
-        f"🔧 Step: <b>{step_name}</b>\n\n"
-        f"📝 <b>Rad etish sababini yozing:</b>\n\n"
-        f"<i>Masalan: Rasm sifati past, qayta yuboring</i>\n\n"
-        f"💡 <i>Ishchi sababni ko'radi va qayta yuborishi mumkin.</i>",
-        reply_markup=qc_reject_cancel_keyboard(),
+        f"{_('qc.reject_title', language=lang)}\n\n"
+        f"🚛 <b>{step.truck.serial_number}</b>\n"
+        f"🔧 <b>{step_name}</b>\n\n"
+        f"{_('qc.reject_prompt', language=lang)}",
+        reply_markup=qc_reject_cancel_keyboard(lang),
     )
 
 
-# ==== Reject — sabab qabul qilish ====
+# ==================== Reject — sabab qabul qilish ====================
 @router.message(RejectStepFSM.reason, F.text)
 async def process_reject_reason(
     message: Message,
     state: FSMContext,
+    user: User,
 ):
     """Rad etish sababini qabul qilish."""
+    lang = user.language or "uz"
     text = message.text.strip()
 
     if len(text) < 5:
         await message.answer(
-            "⚠️ <b>Sabab juda qisqa</b>\n\n"
-            f"Sizning sababingiz: {len(text)} belgi\n"
-            f"Minimal: 5 belgi\n\n"
-            "Batafsilroq yozing:",
-            reply_markup=qc_reject_cancel_keyboard(),
+            _("qc.reject_too_short", language=lang, len=len(text)),
+            reply_markup=qc_reject_cancel_keyboard(lang),
         )
         return
 
     if len(text) > 500:
         await message.answer(
-            "⚠️ <b>Sabab juda uzun</b>\n\n"
-            f"Sizning sababingiz: {len(text)} belgi\n"
-            f"Maksimal: 500 belgi\n\n"
-            "Qisqartirib qaytadan yuboring:",
-            reply_markup=qc_reject_cancel_keyboard(),
+            _("qc.reject_too_long", language=lang, len=len(text)),
+            reply_markup=qc_reject_cancel_keyboard(lang),
         )
         return
 
@@ -224,15 +221,12 @@ async def process_reject_reason(
     step_id = data["step_id"]
 
     await message.answer(
-        f"❌ <b>Rad etishni tasdiqlang</b>\n\n"
-        f"📝 Sabab: <i>{text}</i>\n\n"
-        f"<b>Rostdan ham rad etmoqchimisiz?</b>\n\n"
-        f"💡 <i>Ishchi sababni ko'radi va qayta yuborishi mumkin.</i>",
-        reply_markup=qc_reject_confirm_keyboard(step_id),
+        _("qc.reject_confirm", language=lang, reason=text),
+        reply_markup=qc_reject_confirm_keyboard(step_id, lang),
     )
 
 
-# ==== Reject — confirm ====
+# ==================== Reject — confirm ====================
 @router.callback_query(IsQC(), F.data.startswith("qc_reject_confirm:"))
 async def confirm_reject(
     callback: CallbackQuery,
@@ -242,50 +236,60 @@ async def confirm_reject(
     bot: Bot,
 ):
     """Rad etishni amalga oshirish."""
+    lang = user.language or "uz"
     step_id = int(callback.data.split(":")[1])
     data = await state.get_data()
     reason = data.get("reason")
 
     if not reason:
-        await callback.answer("❌ Sabab yo'q", show_alert=True)
+        await callback.answer(
+            _("common.error_generic", language=lang),
+            show_alert=True,
+        )
         return
 
     step = await get_step_for_review(session, step_id)
 
     if not step or step.status != "in_review":
-        await callback.answer("❌ Xato", show_alert=True)
+        await callback.answer(
+            _("common.error_generic", language=lang),
+            show_alert=True,
+        )
         return
 
-    # Rad etish + bildirishnoma
     await reject_step(session, step, qc_id=user.id, reason=reason, bot=bot)
 
     await state.clear()
-    await callback.answer("❌ Rad etildi", show_alert=False)
-
-    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
-
-    text = (
-        f"❌ <b>Rad etildi</b>\n\n"
-        f"🚛 Truck: <b>{step.truck.serial_number}</b>\n"
-        f"🔧 Step: <b>{step_name}</b>\n\n"
-        f"📝 Sabab: <i>{reason}</i>\n\n"
-        f"💡 <i>Ishchiga xabar yuborildi, qayta yuborishi mumkin.</i>"
+    await callback.answer(
+        _("qc.reject_success_alert", language=lang),
+        show_alert=False,
     )
 
-    # Tugmalar bilan yuboramiz
+    step_name = get_step_name(step.step_number, lang)
+
+    text = _(
+        "qc.reject_success",
+        language=lang,
+        truck=step.truck.serial_number,
+        step=step_name,
+        reason=reason,
+    )
+
     await callback.message.answer(
         text,
-        reply_markup=qc_after_action_keyboard(),
+        reply_markup=qc_after_action_keyboard(lang),
     )
 
 
-# ==== Reject — restart ====
+# ==================== Reject — restart ====================
 @router.callback_query(IsQC(), F.data.startswith("qc_reject_restart:"))
 async def restart_reject(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
 ):
     """Sababni qayta kiritish."""
+    lang = user.language or "uz"
     step_id = int(callback.data.split(":")[1])
     await callback.answer()
 
@@ -294,104 +298,102 @@ async def restart_reject(
     await state.set_state(RejectStepFSM.reason)
 
     await callback.message.answer(
-        "📝 <b>Rad etish sababini yozing:</b>\n\n"
-        "<i>Kamida 5, ko'pi bilan 500 belgi.</i>",
-        reply_markup=qc_reject_cancel_keyboard(),
+        _("qc.reject_prompt", language=lang),
+        reply_markup=qc_reject_cancel_keyboard(lang),
     )
 
 
-# ==== Reject — bekor qilish ====
+# ==================== Reject — bekor qilish ====================
 @router.callback_query(F.data == "qc_reject_cancel")
 async def cancel_reject(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
     session: AsyncSession,
 ):
     """Rad etishni bekor qilish."""
-    await callback.answer("❌ Bekor qilindi")
-
-    data = await state.get_data()
-    step_id = data.get("step_id")
+    lang = user.language or "uz"
+    await callback.answer(_("common.cancel", language=lang))
     await state.clear()
 
-    # Navbatga qaytamiz
     steps = await get_qc_queue(session)
 
     if not steps:
         await callback.message.answer(
-            "🎉 <b>Navbat bo'sh!</b>\n\n"
-            "✅ Barcha ishlar tekshirilgan.",
-            reply_markup=qc_after_action_keyboard(),
+            _("qc.queue_empty", language=lang),
+            reply_markup=qc_after_action_keyboard(lang),
         )
         return
 
     await callback.message.answer(
-        f"🔔 <b>Tekshirish navbati</b>\n\n"
-        f"📊 Jami: <b>{len(steps)}</b> ta ish\n\n"
-        f"👇 Tekshirish uchun ishni tanlang:",
-        reply_markup=qc_queue_keyboard(steps),
+        f"{_('qc.queue_title', language=lang)}\n\n"
+        f"{_('qc.queue_total', language=lang, count=len(steps))}\n\n"
+        f"{_('qc.queue_choose', language=lang)}",
+        reply_markup=qc_queue_keyboard(steps, lang),
     )
 
 
-# ==== Yordamchi ====
-async def _send_review(callback: CallbackQuery, step) -> None:
+# ==================== Yordamchi ====================
+async def _send_review(
+    callback: CallbackQuery,
+    step,
+    lang: str,
+) -> None:
     """Ishni ko'rsatish."""
     truck = step.truck
     worker = step.worker
 
-    priority_name = PRIORITY_NAMES.get(truck.priority, truck.priority)
-    step_name = STEP_NAMES.get(step.step_number, f"Step {step.step_number}")
+    from src.services.i18n_service import get_priority_name
 
-    text = (
-        f"🔍 <b>Tekshirish</b>\n\n"
-        f"🚛 Truck: <b>{truck.serial_number}</b>\n"
-    )
+    priority_name = get_priority_name(truck.priority, lang)
+    step_name = get_step_name(step.step_number, lang)
+
+    text = f"{_('qc.review_title', language=lang)}\n\n"
+    text += f"🚛 <b>{truck.serial_number}</b>\n"
 
     if truck.model:
-        text += f"🏭 Model: {truck.model}\n"
+        text += f"🏭 {truck.model}\n"
     if truck.customer:
-        text += f"👤 Buyurtmachi: {truck.customer}\n"
+        text += f"👤 {truck.customer}\n"
     if truck.deadline:
-        text += f"📅 Muddat: {truck.deadline.strftime('%Y-%m-%d')}\n"
+        text += f"📅 {truck.deadline.strftime('%Y-%m-%d')}\n"
 
-    text += f"🎯 Prioritet: {priority_name}\n\n"
-
-    text += f"🔧 Step: <b>{step_name}</b>\n"
+    text += f"🎯 {priority_name}\n\n"
+    text += f"🔧 <b>{step_name}</b>\n"
 
     if worker:
-        text += f"👷 Ishchi: {worker.full_name}\n"
+        text += f"👷 {worker.full_name}\n"
 
     if step.submitted_at:
-        text += (
-            f"🕐 Yuborilgan: "
-            f"{step.submitted_at.strftime('%Y-%m-%d %H:%M')}\n"
-        )
+        text += f"🕐 {step.submitted_at.strftime('%Y-%m-%d %H:%M')}\n"
 
     if step.worker_comment:
         text += f"\n📝 <b>Izoh:</b>\n<i>{step.worker_comment}</i>\n"
 
-    text += "\n📊 <b>Qarorni tanlang:</b>"
+    text += f"\n{_('qc.review_choose_decision', language=lang)}"
+
+    keyboard = qc_review_keyboard(step.id, lang)
 
     if step.media_type == "photo" and step.media_file_id:
         await callback.message.answer_photo(
             photo=step.media_file_id,
             caption=text,
-            reply_markup=qc_review_keyboard(step.id),
+            reply_markup=keyboard,
         )
     elif step.media_type == "video" and step.media_file_id:
         await callback.message.answer_video(
             video=step.media_file_id,
             caption=text,
-            reply_markup=qc_review_keyboard(step.id),
+            reply_markup=keyboard,
         )
     elif step.media_type == "document" and step.media_file_id:
         await callback.message.answer_document(
             document=step.media_file_id,
             caption=text,
-            reply_markup=qc_review_keyboard(step.id),
+            reply_markup=keyboard,
         )
     else:
         await callback.message.answer(
             text,
-            reply_markup=qc_review_keyboard(step.id),
+            reply_markup=keyboard,
         )

@@ -4,9 +4,11 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.bot.keyboards.language import language_settings_keyboard
 from src.bot.keyboards.notification import notification_settings_keyboard
 from src.database.models.notification import NotificationSettings
 from src.database.models.user import User
+from src.services.i18n_service import _
 
 
 router = Router(name="settings")
@@ -31,6 +33,7 @@ async def _get_or_create_settings(
     return settings
 
 
+# ==== "🔔 Sozlamalar" ====
 @router.message(F.text == "🔔 Sozlamalar")
 async def show_settings(
     message: Message,
@@ -40,18 +43,21 @@ async def show_settings(
     """Sozlamalarni ko'rsatish."""
     settings = await _get_or_create_settings(session, user.id)
 
+    lang = user.language or "uz"
+
     text = (
-        "🔔 <b>Bildirishnoma sozlamalari</b>\n\n"
-        "Qaysi bildirishnomalarni olishni xohlaysiz?\n\n"
-        "👇 Tugmalarni bosib yoqing/o'chiring:"
+        f"{_('settings.title', lang)}\n\n"
+        f"{_('settings.notifications', lang)}\n\n"
+        f"{_('settings.notifications_prompt', lang)}"
     )
 
     await message.answer(
         text,
-        reply_markup=notification_settings_keyboard(settings),
+        reply_markup=notification_settings_keyboard(settings, lang),
     )
 
 
+# ==== Bildirishnomani yoqish/o'chirish ====
 @router.callback_query(F.data.startswith("notif_toggle:"))
 async def toggle_notification(
     callback: CallbackQuery,
@@ -60,32 +66,51 @@ async def toggle_notification(
 ):
     """Bildirishnomani yoqish/o'chirish."""
     field = callback.data.split(":")[1]
+    lang = user.language or "uz"
 
     settings = await _get_or_create_settings(session, user.id)
 
     if not hasattr(settings, field):
-        await callback.answer("❌ Xato", show_alert=True)
+        await callback.answer(
+            _("common.error_generic", lang),
+            show_alert=True,
+        )
         return
 
     current = getattr(settings, field)
     setattr(settings, field, not current)
     await session.flush()
 
-    field_names = {
-        "on_new_task": "Yangi vazifa",
-        "on_approved": "Tasdiqlanganda",
-        "on_rejected": "Rad etilganda",
-        "on_next_step": "Keyingi step",
-        "daily_report": "Kunlik hisobot",
-    }
-    name = field_names.get(field, field)
+    field_key = f"settings.{field}"
+    name = _(field_key, lang)
 
-    status = "✅ yoqildi" if not current else "❌ o'chirildi"
-    await callback.answer(f"{name}: {status}")
+    if not current:
+        status = _("settings.enabled", lang, name=name)
+    else:
+        status = _("settings.disabled", lang, name=name)
+
+    await callback.answer(status)
 
     try:
         await callback.message.edit_reply_markup(
-            reply_markup=notification_settings_keyboard(settings),
+            reply_markup=notification_settings_keyboard(settings, lang),
         )
     except Exception:
         pass
+
+
+# ==== "🌐 Tilni o'zgartirish" ====
+@router.callback_query(F.data == "settings_language")
+async def show_language_settings(
+    callback: CallbackQuery,
+    user: User,
+):
+    """Til tanlash (sozlamalarda)."""
+    await callback.answer()
+
+    lang = user.language or "uz"
+
+    await callback.message.edit_text(
+        f"{_('language.title', lang)}\n\n{_('language.choose', lang)}",
+        reply_markup=language_settings_keyboard(),
+    )

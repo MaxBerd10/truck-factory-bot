@@ -15,6 +15,10 @@ from src.bot.keyboards.invite import (
     invite_role_keyboard,
     invite_step_keyboard,
 )
+from src.bot.keyboards.language import (
+    language_keyboard,
+    language_settings_keyboard,
+)
 from src.bot.keyboards.qc import (
     qc_after_action_keyboard,
     qc_approve_confirm_keyboard,
@@ -64,19 +68,17 @@ def main_menu_keyboard(role: str):
 
 
 __all__ = [
-    # Admin
     "admin_main_menu",
-    # Reply
     "admin_menu_keyboard",
     "cancel_add_user_keyboard",
     "confirm_add_user_keyboard",
     "export_keyboard",
-    # Invite
     "invite_cancel_keyboard",
     "invite_role_keyboard",
     "invite_step_keyboard",
+    "language_keyboard",
+    "language_settings_keyboard",
     "main_menu_keyboard",
-    # QC
     "qc_after_action_keyboard",
     "qc_approve_confirm_keyboard",
     "qc_history_detail_keyboard",
@@ -86,14 +88,12 @@ __all__ = [
     "qc_reject_cancel_keyboard",
     "qc_reject_confirm_keyboard",
     "qc_review_keyboard",
-    # Registration
     "registration_cancel_keyboard",
     "registration_confirm_keyboard",
     "registration_skip_phone_keyboard",
     "role_choice_keyboard",
     "skip_phone_keyboard",
     "step_choice_keyboard",
-    # Truck
     "truck_confirm_keyboard",
     "truck_detail_keyboard",
     "truck_priority_keyboard",
@@ -101,7 +101,6 @@ __all__ = [
     "trucks_list_keyboard",
     "user_detail_keyboard",
     "users_list_keyboard",
-    # Worker
     "worker_after_submit_keyboard",
     "worker_history_detail_keyboard",
     "worker_history_keyboard",

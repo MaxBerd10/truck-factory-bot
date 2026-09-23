@@ -3,6 +3,7 @@ from aiogram import Router
 
 from src.bot.handlers.admin import get_admin_router
 from src.bot.handlers.common import router as common_router
+from src.bot.handlers.language import router as language_router
 from src.bot.handlers.qc import get_qc_router
 from src.bot.handlers.registration import router as registration_router
 from src.bot.handlers.settings import router as settings_router
@@ -14,6 +15,7 @@ def setup_handlers() -> Router:
     main_router = Router(name="main")
 
     main_router.include_router(registration_router)
+    main_router.include_router(language_router)
     main_router.include_router(get_worker_router())
     main_router.include_router(get_qc_router())
     main_router.include_router(get_admin_router())

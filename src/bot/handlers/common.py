@@ -4,9 +4,14 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.types import CallbackQuery, Message
 
 from src.bot.keyboards import main_menu_keyboard
+from src.bot.keyboards.language import language_keyboard
 from src.database.models.user import User
+from src.services.i18n_service import (
+    _,
+    get_role_name,
+    get_step_name,
+)
 from src.services.user_service import create_admin_if_needed
-from src.utils.constants import ROLE_NAMES, STEP_NAMES
 
 
 router = Router(name="common")
@@ -19,13 +24,25 @@ async def cmd_start(
     user: User | None,
     session,
 ):
-    """Start buyrug'i — foydalanuvchini tanish yoki admin yaratish."""
+    """Start buyrug'i."""
     tg_user = message.from_user
 
     if user:
+        # Til tanlanmagan bo'lsa — so'rash
+        if not user.language:
+            await message.answer(
+                "🌐 <b>Tilni tanlang</b>\n\n"
+                "🇺🇿 O'zbekcha (lotin)\n"
+                "🇺🇿 Ўзбекча (кирилл)\n"
+                "🇷🇺 Русский",
+                reply_markup=language_keyboard(),
+            )
+            return
+
         await show_main_menu(message, user)
         return
 
+    # Yangi foydalanuvchi — admin yaratish
     admin = await create_admin_if_needed(
         session=session,
         telegram_id=tg_user.id,
@@ -35,17 +52,17 @@ async def cmd_start(
 
     if admin:
         await message.answer(
-            f"👑 <b>Xush kelibsiz, {admin.full_name}!</b>\n\n"
-            f"Siz <b>Administrator</b> sifatida tizimga kirdingiz.",
+            _(
+                "start.admin_welcome",
+                language=admin.language or "uz",
+                name=admin.full_name,
+            ),
             reply_markup=main_menu_keyboard(admin.role),
         )
         return
 
     await message.answer(
-        "🚫 <b>Ruxsat yo'q</b>\n\n"
-        "Siz tizimda ro'yxatdan o'tmagansiz.\n\n"
-        "Ishga qabul qilinish uchun <b>administratorga</b> murojaat qiling.\n"
-        "Agar sizda <b>taklif havolasi</b> bo'lsa, uni bosing.",
+        _("start.no_access", language="uz"),
     )
 
 
@@ -54,15 +71,19 @@ async def cmd_start(
 async def cmd_help(message: Message, user: User | None):
     """Yordam."""
     if not user:
-        await message.answer("Yordam olish uchun administratorga murojaat qiling.")
+        await message.answer(
+            "Yordam olish uchun administratorga murojaat qiling."
+        )
         return
 
+    lang = user.language or "uz"
+
     help_text = (
-        "📖 <b>Yordam</b>\n\n"
-        "<b>Buyruqlar:</b>\n"
-        "/start — Asosiy menyu\n"
-        "/help — Yordam\n"
-        "/id — Telegram ID ingizni ko'rish\n"
+        f"📖 <b>{_('common.help', language=lang)}</b>\n\n"
+        f"<b>Buyruqlar:</b>\n"
+        f"/start — {_('common.main_menu', language=lang)}\n"
+        f"/help — {_('common.help', language=lang)}\n"
+        f"/id — Telegram ID\n"
     )
 
     if user.is_admin:
@@ -88,18 +109,18 @@ async def cmd_id(message: Message):
 async def btn_main_menu(message: Message, user: User | None):
     """Reply tugmadan asosiy menyuga qaytish."""
     if not user:
-        await message.answer("Ruxsat yo'q. Administratorga murojaat qiling.")
+        await message.answer("Ruxsat yo'q.")
         return
     await show_main_menu(message, user)
 
 
-# ==== 🔙 Asosiy menyu (inline callback) — HAMMA UCHUN ====
+# ==== 🔙 Asosiy menyu (inline callback) ====
 @router.callback_query(F.data == "main_menu")
 async def callback_main_menu(
     callback: CallbackQuery,
     user: User | None,
 ):
-    """Inline tugmadan asosiy menyuga qaytish (hamma rollar uchun)."""
+    """Inline tugmadan asosiy menyuga qaytish."""
     await callback.answer()
 
     if not user:
@@ -111,15 +132,16 @@ async def callback_main_menu(
     except Exception:
         pass
 
-    role_name = ROLE_NAMES.get(user.role, user.role)
+    lang = user.language or "uz"
+    role_name = get_role_name(user.role, lang)
 
-    text = "🏠 <b>Asosiy menyu</b>\n\n"
-    text += f"👋 Salom, <b>{user.full_name}</b>!\n"
-    text += f"🎭 Rol: {role_name}\n"
+    text = f"🏠 <b>{_('common.main_menu', language=lang)}</b>\n\n"
+    text += f"👋 <b>{user.full_name}</b>\n"
+    text += f"🎭 {_('start.role', language=lang, role=role_name)}\n"
 
     if user.step_number:
-        step_name = STEP_NAMES.get(user.step_number, f"Step {user.step_number}")
-        text += f"🔧 Bo'lim: {step_name}\n"
+        step_name = get_step_name(user.step_number, lang)
+        text += f"{_('start.step', language=lang, step=step_name)}\n"
 
     await callback.message.answer(
         text,
@@ -130,16 +152,17 @@ async def callback_main_menu(
 # ==== Yordamchi funksiya ====
 async def show_main_menu(message: Message, user: User) -> None:
     """Rolga qarab asosiy menyu ko'rsatish."""
-    role_name = ROLE_NAMES.get(user.role, user.role)
+    lang = user.language or "uz"
+    role_name = get_role_name(user.role, lang)
 
-    text = f"👋 Salom, <b>{user.full_name}</b>!\n\n"
-    text += f"🎭 Rol: {role_name}\n"
+    text = f"👋 <b>{user.full_name}</b>\n\n"
+    text += f"🎭 {_('start.role', language=lang, role=role_name)}\n"
 
     if user.step_number:
-        step_name = STEP_NAMES.get(user.step_number, f"Step {user.step_number}")
-        text += f"🔧 Bo'lim: {step_name}\n"
+        step_name = get_step_name(user.step_number, lang)
+        text += f"{_('start.step', language=lang, step=step_name)}\n"
 
-    text += "\nKerakli bo'limni tanlang:"
+    text += f"\n{_('start.choose_section', language=lang)}"
 
     await message.answer(
         text,
@@ -157,7 +180,7 @@ async def fallback_text(
     if not user:
         return
 
-    # Tugmalar ro'yxati (bular fallback ga tushmasligi kerak)
+    # Tugmalar ro'yxati
     known_buttons = {
         "📋 Vazifalarim", "📤 Ish yuborish", "📜 Tarixim",
         "📊 Statistika", "🔔 Sozlamalar", "🏠 Asosiy menyu",
@@ -167,11 +190,11 @@ async def fallback_text(
     }
 
     if message.text in known_buttons:
-        return  # Boshqa handler lar ishlashi kerak
+        return
+
+    lang = user.language or "uz"
 
     await message.answer(
-        "🤔 <b>Buyruq tushunarsiz</b>\n\n"
-        "Iltimos, pastdagi tugmalardan foydalaning.\n\n"
-        "💡 <i>Yordam kerak bo'lsa /help buyrug'ini yuboring.</i>",
+        _("common.unknown_command", language=lang),
         reply_markup=main_menu_keyboard(user.role),
     )

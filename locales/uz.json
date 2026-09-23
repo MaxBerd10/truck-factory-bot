@@ -12,7 +12,8 @@
     "error_generic": "⚠️ Xatolik yuz berdi. Qaytadan urinib ko'ring.",
     "not_found": "⚠️ Ma'lumot topilmadi",
     "no_permission": "🚫 Ruxsat yo'q",
-    "unknown_command": "🤔 Buyruq tushunarsiz. Pastdagi tugmalardan foydalaning."
+    "unknown_command": "🤔 Buyruq tushunarsiz. Pastdagi tugmalardan foydalaning.",
+    "help": "Yordam"
   },
   "roles": {
     "admin": "Administrator",
@@ -53,7 +54,7 @@
   "language": {
     "title": "🌐 Tilni tanlang",
     "choose": "👇 Quyidagi tugmalardan tilni tanlang:",
-    "changed": "✅ Til o'zgartirildi: {language}",
+    "changed": "✅ Til o'zgartirildi: {language_name}",
     "uz": "🇺🇿 O'zbekcha (lotin)",
     "uz_cyrl": "🇺🇿 Ўзбекча (кирилл)",
     "ru": "🇷🇺 Русский"

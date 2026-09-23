@@ -3,84 +3,95 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from aiogram import Bot, F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.filters import IsAdmin
-from src.bot.keyboards.admin import admin_main_menu
-from src.bot.keyboards.invite import (
+from src.bot.keyboards.admin import (
     invite_cancel_keyboard,
     invite_role_keyboard,
     invite_step_keyboard,
 )
+from src.bot.keyboards.reply import admin_menu_keyboard
 from src.bot.states import CreateInviteFSM
 from src.database.models.invite import Invite
 from src.database.models.user import User
-from src.utils.constants import (
-    ROLE_NAMES,
-    STEP_NAMES,
-)
+from src.services.i18n_service import _, get_role_name, get_step_name
 from src.utils.logger import logger
 
 
 router = Router(name="admin_invites")
 
 
-# ==== Invite yaratishni boshlash ====
+# ==================== Invite yaratishni boshlash ====================
 @router.message(IsAdmin(), F.text == "➕ Taklif yaratish")
 async def start_invite(
     message: Message,
-    state: CreateInviteFSM,
+    state: FSMContext,
+    user: User,
 ):
     """Invite yaratishni boshlash."""
+    lang = user.language or "uz"
     await state.clear()
     await state.set_state(CreateInviteFSM.role)
 
     await message.answer(
-        "➕ <b>Yangi taklif yaratish</b>\n\n"
-        "1️⃣ <b>Rolni tanlang:</b>",
-        reply_markup=invite_role_keyboard(),
+        _("admin.invite_step1", language=lang),
+        reply_markup=invite_role_keyboard(lang),
     )
 
 
-# ==== Rol tanlash ====
-@router.callback_query(IsAdmin(), F.data.startswith("invite_role:"))
+# ==================== Rol tanlash ====================
+@router.callback_query(
+    CreateInviteFSM.role,
+    F.data.startswith("invite_role:"),
+)
 async def choose_role(
     callback: CallbackQuery,
-    state: CreateInviteFSM,
+    state: FSMContext,
+    user: User,
 ):
     """Rolni tanlash."""
+    lang = user.language or "uz"
     role = callback.data.split(":")[1]
     await callback.answer()
 
     await state.update_data(role=role)
 
     if role == "worker":
-        await state.set_state(CreateInviteFSM.step)
+        await state.set_state(CreateInviteFSM.step_number)
         await callback.message.edit_text(
-            "2️⃣ <b>Ishchi bo'limini tanlang:</b>\n\n"
-            "<i>Qaysi stepda ishlaydi?</i>",
-            reply_markup=invite_step_keyboard(),
+            _("admin.invite_step2_worker", language=lang),
+            reply_markup=invite_step_keyboard(lang),
         )
     else:
         await state.set_state(CreateInviteFSM.confirm)
-        role_name = ROLE_NAMES.get(role, role)
+        role_name = get_role_name(role, lang)
 
         await callback.message.edit_text(
-            f"📋 <b>Tasdiqlash</b>\n\n"
-            f"🎭 Rol: <b>{role_name}</b>\n\n"
-            f"<b>Taklif yaratilsinmi?</b>",
-            reply_markup=invite_cancel_keyboard(),
+            _(
+                "admin.invite_confirm",
+                language=lang,
+                role=role_name,
+                step="—",
+            ),
+            reply_markup=invite_cancel_keyboard(lang),
         )
 
 
-# ==== Step tanlash ====
-@router.callback_query(IsAdmin(), F.data.startswith("invite_step:"))
+# ==================== Step tanlash ====================
+@router.callback_query(
+    CreateInviteFSM.step_number,
+    F.data.startswith("invite_step:"),
+)
 async def choose_step(
     callback: CallbackQuery,
-    state: CreateInviteFSM,
+    state: FSMContext,
+    user: User,
 ):
     """Stepni tanlash."""
+    lang = user.language or "uz"
     step_number = int(callback.data.split(":")[1])
     await callback.answer()
 
@@ -88,29 +99,34 @@ async def choose_step(
     await state.set_state(CreateInviteFSM.confirm)
 
     data = await state.get_data()
-    role = data["role"]
-    role_name = ROLE_NAMES.get(role, role)
-    step_name = STEP_NAMES.get(step_number, f"Step {step_number}")
+    role_name = get_role_name(data["role"], lang)
+    step_name = get_step_name(step_number, lang)
 
     await callback.message.edit_text(
-        f"📋 <b>Tasdiqlash</b>\n\n"
-        f"🎭 Rol: <b>{role_name}</b>\n"
-        f"🔧 Bo'lim: <b>{step_name}</b>\n\n"
-        f"<b>Taklif yaratilsinmi?</b>",
-        reply_markup=invite_cancel_keyboard(),
+        _(
+            "admin.invite_confirm",
+            language=lang,
+            role=role_name,
+            step=step_name,
+        ),
+        reply_markup=invite_cancel_keyboard(lang),
     )
 
 
-# ==== Invite yaratish (confirm) ====
-@router.callback_query(IsAdmin(), F.data == "invite_confirm")
+# ==================== Invite yaratish ====================
+@router.callback_query(
+    CreateInviteFSM.confirm,
+    F.data == "invite_confirm",
+)
 async def confirm_invite(
     callback: CallbackQuery,
-    state: CreateInviteFSM,
+    state: FSMContext,
     session: AsyncSession,
     user: User,
     bot: Bot,
 ):
     """Invite yaratishni tasdiqlash."""
+    lang = user.language or "uz"
     data = await state.get_data()
     role = data["role"]
     step_number = data.get("step_number")
@@ -125,53 +141,53 @@ async def confirm_invite(
         token=token,
         role=role,
         step_number=step_number,
-        created_by=user.id,
+        created_by=user.telegram_id,
         expires_at=expires_at,
     )
     session.add(invite)
     await session.flush()
 
     await state.clear()
-    await callback.answer("✅ Taklif yaratildi")
+    await callback.answer(_("admin.invite_created", language=lang))
 
     # Bot username
     bot_info = await bot.get_me()
     invite_link = f"https://t.me/{bot_info.username}?start={token}"
 
-    role_name = ROLE_NAMES.get(role, role)
+    role_name = get_role_name(role, lang)
     step_info = ""
     if step_number:
-        step_name = STEP_NAMES.get(step_number, f"Step {step_number}")
-        step_info = f"\n🔧 Bo'lim: <b>{step_name}</b>"
+        step_name = get_step_name(step_number, lang)
+        step_info = f"\n🔧 {step_name}"
 
     logger.info(
         f"➕ Invite yaratildi: role={role}, step={step_number}, "
-        f"token={token}, created_by={user.id}"
+        f"token={token}, created_by={user.telegram_id}"
     )
 
     await callback.message.edit_text(
-        f"✅ <b>Taklif yaratildi!</b>\n\n"
-        f"🎭 Rol: <b>{role_name}</b>{step_info}\n\n"
+        f"✅ <b>{_('admin.invite_created', language=lang)}</b>\n\n"
+        f"🎭 {role_name}{step_info}\n\n"
         f"🔗 <b>Havola:</b>\n"
         f"<code>{invite_link}</code>\n\n"
-        f"⏰ Muddat: <b>24 soat</b>\n\n"
-        f"<i>Havolani foydalanuvchiga yuboring.</i>",
-        reply_markup=admin_main_menu(),
+        f"⏰ {_('admin.invite_expires', language=lang)}\n\n"
+        f"<i>{_('admin.invite_hint', language=lang)}</i>",
+        reply_markup=admin_menu_keyboard(lang),
     )
 
 
-# ==== Invite bekor qilish ====
-@router.callback_query(IsAdmin(), F.data == "invite_cancel")
+# ==================== Bekor qilish ====================
+@router.callback_query(F.data == "invite_cancel")
 async def cancel_invite(
     callback: CallbackQuery,
-    state: CreateInviteFSM,
+    state: FSMContext,
+    user: User,
 ):
     """Invite yaratishni bekor qilish."""
-    await callback.answer("❌ Bekor qilindi")
+    lang = user.language or "uz"
+    await callback.answer(_("common.cancel", language=lang))
     await state.clear()
 
     await callback.message.edit_text(
-        "❌ <b>Bekor qilindi.</b>\n\n"
-        "Admin panelga qaytish uchun /start bosing.",
-        reply_markup=admin_main_menu(),
+        _("common.cancelled", language=lang),
     )

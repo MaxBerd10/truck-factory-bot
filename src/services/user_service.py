@@ -29,59 +29,73 @@ async def create_admin_if_needed(
     Returns:
         User | None: Yaratilgan yoki mavjud user, yoki None.
     """
-    # ADMIN_IDS da bormi?
     if telegram_id not in settings.ADMIN_IDS:
         return None
 
-    # DB da bormi?
     existing = await get_user_by_telegram_id(session, telegram_id)
     if existing:
+        if existing.role != UserRole.ADMIN:
+            existing.role = UserRole.ADMIN
+            await session.flush()
         return existing
 
-    # Yangi admin yaratamiz
-    new_admin = User(
+    admin = User(
         telegram_id=telegram_id,
-        username=username,
         full_name=full_name,
-        role=UserRole.ADMIN.value,
-        step_number=None,
+        username=username,
+        role=UserRole.ADMIN,
         is_active=True,
-        created_by=None,  # o'zi
+        language="uz",
     )
-    session.add(new_admin)
-    await session.flush()  # ID olish uchun
+    session.add(admin)
+    await session.flush()
 
-    logger.success(
-        f"👑 Yangi admin yaratildi: {full_name} (@{username}), "
-        f"telegram_id={telegram_id}"
-    )
-
-    return new_admin
+    logger.info(f"👑 Admin yaratildi: {full_name} (id={telegram_id})")
+    return admin
 
 
 async def create_user_from_invite(
     session: AsyncSession,
     telegram_id: int,
     full_name: str,
-    username: str | None,
     role: str,
     step_number: int | None = None,
+    phone: str | None = None,
     created_by: int | None = None,
+    username: str | None = None,
+    language: str = "uz",
 ) -> User:
-    """Invite orqali foydalanuvchi yaratish."""
+    """Invite yoki admin tomonidan foydalanuvchi yaratish.
+
+    Args:
+        session: DB sessiya
+        telegram_id: Telegram ID
+        full_name: To'liq ism
+        role: Rol (worker, qc, admin)
+        step_number: Step raqami (faqat worker uchun)
+        phone: Telefon raqami
+        created_by: Kim yaratgan (Telegram ID)
+        username: Telegram username
+        language: Til kodi (uz, uz_cyrl, ru)
+
+    Returns:
+        User: Yaratilgan foydalanuvchi
+    """
     user = User(
         telegram_id=telegram_id,
         username=username,
         full_name=full_name,
         role=role,
         step_number=step_number,
-        is_active=True,
+        phone=phone,
         created_by=created_by,
+        is_active=True,
+        language=language,
     )
     session.add(user)
     await session.flush()
 
-    logger.success(
+    logger.info(
         f"👤 Yangi user yaratildi: {full_name} (@{username}), "
         f"role={role}, step={step_number}"
     )

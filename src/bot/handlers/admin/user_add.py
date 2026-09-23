@@ -16,64 +16,66 @@ from src.bot.keyboards.admin import (
 )
 from src.bot.states import AddUserFSM
 from src.database.models.user import User
-from src.services.user_service import create_user_from_invite, get_user_by_telegram_id
-from src.utils.constants import ROLE_NAMES, STEP_NAMES
+from src.services.i18n_service import _, get_role_name, get_step_name
+from src.services.user_service import (
+    create_user_from_invite,
+    get_user_by_telegram_id,
+)
+from src.utils.logger import logger
 
 
 router = Router(name="admin_user_add")
 
 
-# ==== Boshlash ====
+# ==================== Boshlash ====================
 @router.callback_query(IsAdmin(), F.data == "user_add")
 async def start_add_user(
     callback: CallbackQuery,
     state: FSMContext,
     user: User,
 ):
-    """Yangi user qo'shishni boshlash."""
+    """Yangi foydalanuvchi qo'shishni boshlash."""
+    lang = user.language or "uz"
     await callback.answer()
     await state.clear()
     await state.set_state(AddUserFSM.telegram_id)
 
     await callback.message.edit_text(
-        "➕ <b>Yangi foydalanuvchi qo'shish</b>\n\n"
-        "1️⃣ <b>Telegram ID</b> ni kiriting:\n\n"
-        "<i>Masalan: 123456789</i>\n"
-        "<i>Foydalanuvchi ID sini @userinfobot dan olish mumkin.</i>",
-        reply_markup=cancel_add_user_keyboard(),
+        _("admin.user_add_step1", language=lang),
+        reply_markup=cancel_add_user_keyboard(lang),
     )
 
 
-# ==== 1. Telegram ID ====
+# ==================== Telegram ID ====================
 @router.message(AddUserFSM.telegram_id, F.text)
 async def process_telegram_id(
     message: Message,
     state: FSMContext,
+    user: User,
     session: AsyncSession,
 ):
     """Telegram ID ni qabul qilish."""
+    lang = user.language or "uz"
     text = message.text.strip()
 
-    # Raqam ekanligini tekshirish
-    if not re.fullmatch(r"\d{5,15}", text):
+    if not text.isdigit():
         await message.answer(
-            "❌ <b>Xato!</b>\n\n"
-            "Telegram ID faqat raqamlardan iborat bo'lishi kerak (5-15 xona).\n"
-            "Qaytadan kiriting:",
+            _("admin.user_add_invalid_id", language=lang),
+            reply_markup=cancel_add_user_keyboard(lang),
         )
         return
 
     telegram_id = int(text)
 
-    # Allaqachon bormi?
     existing = await get_user_by_telegram_id(session, telegram_id)
     if existing:
         await message.answer(
-            f"⚠️ <b>Bu foydalanuvchi allaqachon mavjud!</b>\n\n"
-            f"👤 {existing.full_name}\n"
-            f"🎭 Rol: {ROLE_NAMES.get(existing.role, existing.role)}\n\n"
-            f"Boshqa Telegram ID kiriting yoki bekor qiling:",
-            reply_markup=cancel_add_user_keyboard(),
+            _(
+                "admin.user_add_exists",
+                language=lang,
+                name=existing.full_name,
+            ),
+            reply_markup=cancel_add_user_keyboard(lang),
         )
         return
 
@@ -81,229 +83,265 @@ async def process_telegram_id(
     await state.set_state(AddUserFSM.full_name)
 
     await message.answer(
-        f"✅ Telegram ID: <code>{telegram_id}</code>\n\n"
-        f"2️⃣ <b>Ism familiya</b> ni kiriting:\n\n"
-        f"<i>Masalan: Akmal Karimov</i>",
-        reply_markup=cancel_add_user_keyboard(),
+        _("admin.user_add_step2", language=lang),
+        reply_markup=cancel_add_user_keyboard(lang),
     )
 
 
-# ==== 2. Ism familiya ====
+# ==================== To'liq ism ====================
 @router.message(AddUserFSM.full_name, F.text)
 async def process_full_name(
     message: Message,
     state: FSMContext,
+    user: User,
 ):
-    """Ism familiyani qabul qilish."""
+    """To'liq ismni qabul qilish."""
+    lang = user.language or "uz"
     text = message.text.strip()
 
-    if len(text) < 3 or len(text) > 100:
+    if len(text) < 3:
         await message.answer(
-            "❌ <b>Xato!</b>\n\n"
-            "Ism familiya 3 dan 100 belgigacha bo'lishi kerak.\n"
-            "Qaytadan kiriting:",
+            _("admin.user_add_name_short", language=lang),
+            reply_markup=cancel_add_user_keyboard(lang),
         )
         return
 
     await state.update_data(full_name=text)
-    await state.set_state(AddUserFSM.phone)
-
-    await message.answer(
-        f"✅ Ism: <b>{text}</b>\n\n"
-        f"3️⃣ <b>Telefon raqam</b> ni kiriting (ixtiyoriy):\n\n"
-        f"<i>Masalan: +998901234567</i>",
-        reply_markup=skip_phone_keyboard(),
-    )
-
-
-# ==== 3. Telefon (ixtiyoriy) ====
-@router.callback_query(AddUserFSM.phone, F.data == "add_user_skip_phone")
-async def skip_phone(
-    callback: CallbackQuery,
-    state: FSMContext,
-):
-    """Telefon raqamni o'tkazib yuborish."""
-    await callback.answer()
-    await state.update_data(phone=None)
-    await state.set_state(AddUserFSM.role)
-
-    await callback.message.edit_text(
-        "✅ Telefon: <i>o'tkazib yuborildi</i>\n\n"
-        "4️⃣ <b>Rolni tanlang:</b>",
-        reply_markup=role_choice_keyboard(),
-    )
-
-
-@router.message(AddUserFSM.phone, F.text)
-async def process_phone(
-    message: Message,
-    state: FSMContext,
-):
-    """Telefon raqamni qabul qilish."""
-    text = message.text.strip()
-
-    if len(text) < 7 or len(text) > 32:
-        await message.answer(
-            "❌ <b>Xato!</b>\n\n"
-            "Telefon raqam 7 dan 32 belgigacha bo'lishi kerak.\n"
-            "Qaytadan kiriting yoki o'tkazib yuboring:",
-            reply_markup=skip_phone_keyboard(),
-        )
-        return
-
-    await state.update_data(phone=text)
     await state.set_state(AddUserFSM.role)
 
     await message.answer(
-        f"✅ Telefon: <b>{text}</b>\n\n"
-        f"4️⃣ <b>Rolni tanlang:</b>",
-        reply_markup=role_choice_keyboard(),
+        _("admin.user_add_step3", language=lang),
+        reply_markup=role_choice_keyboard(lang),
     )
 
 
-# ==== 4. Rol ====
-@router.callback_query(AddUserFSM.role, F.data.startswith("add_user_role:"))
+# ==================== Rol tanlash ====================
+@router.callback_query(
+    AddUserFSM.role,
+    F.data.startswith("add_user_role:"),
+)
 async def process_role(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
 ):
-    """Rolni tanlash."""
+    """Rolni qabul qilish."""
+    lang = user.language or "uz"
     role = callback.data.split(":")[1]
     await callback.answer()
 
     await state.update_data(role=role)
-    role_name = ROLE_NAMES.get(role, role)
 
-    # Agar worker bo'lsa — step so'raymiz
     if role == "worker":
         await state.set_state(AddUserFSM.step_number)
         await callback.message.edit_text(
-            f"✅ Rol: <b>{role_name}</b>\n\n"
-            f"5️⃣ <b>Qaysi bo'limda ishlaydi?</b>",
-            reply_markup=step_choice_keyboard(),
+            _("admin.user_add_step4_worker", language=lang),
+            reply_markup=step_choice_keyboard(lang),
         )
     else:
-        # QC yoki Admin — step kerak emas
         await state.update_data(step_number=None)
-        await state.set_state(AddUserFSM.confirm)
-        await _show_confirmation(callback.message, state)
+        await state.set_state(AddUserFSM.phone)
+        await callback.message.edit_text(
+            _("admin.user_add_step4", language=lang),
+            reply_markup=skip_phone_keyboard(lang),
+        )
 
 
-# ==== 5. Step (faqat worker uchun) ====
-@router.callback_query(AddUserFSM.step_number, F.data.startswith("add_user_step:"))
+# ==================== Step tanlash ====================
+@router.callback_query(
+    AddUserFSM.step_number,
+    F.data.startswith("add_user_step:"),
+)
 async def process_step(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
 ):
-    """Stepni tanlash."""
-    step_number = int(callback.data.split(":")[1])
+    """Stepni qabul qilish."""
+    lang = user.language or "uz"
+    step_num = int(callback.data.split(":")[1])
     await callback.answer()
 
-    await state.update_data(step_number=step_number)
+    await state.update_data(step_number=step_num)
+    await state.set_state(AddUserFSM.phone)
+
+    await callback.message.edit_text(
+        _("admin.user_add_step4", language=lang),
+        reply_markup=skip_phone_keyboard(lang),
+    )
+
+
+# ==================== Telefon ====================
+@router.message(AddUserFSM.phone, F.text)
+async def process_phone(
+    message: Message,
+    state: FSMContext,
+    user: User,
+):
+    """Telefon raqamini qabul qilish."""
+    lang = user.language or "uz"
+    text = message.text.strip()
+
+    # Telefon raqamini tekshirish (soddalashtirilgan)
+    phone_pattern = re.compile(r"^\+?\d{9,15}$")
+    if not phone_pattern.match(text.replace(" ", "").replace("-", "")):
+        await message.answer(
+            _("admin.user_add_invalid_phone", language=lang),
+            reply_markup=skip_phone_keyboard(lang),
+        )
+        return
+
+    await state.update_data(phone=text)
     await state.set_state(AddUserFSM.confirm)
 
-    await _show_confirmation(callback.message, state)
+    await _show_confirmation(message, state, user, use_edit=False)
 
 
-# ==== 6. Tasdiqlash ====
-@router.callback_query(AddUserFSM.confirm, F.data == "add_user_confirm")
+# ==================== Telefonni o'tkazib yuborish ====================
+@router.callback_query(
+    AddUserFSM.phone,
+    F.data == "user_add_skip_phone",
+)
+async def skip_phone(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+):
+    """Telefonni o'tkazib yuborish."""
+    await callback.answer()
+    await state.update_data(phone=None)
+    await state.set_state(AddUserFSM.confirm)
+
+    await _show_confirmation(callback.message, state, user, use_edit=True)
+
+
+# ==================== Tasdiqlash ====================
+@router.callback_query(AddUserFSM.confirm, F.data == "user_add_confirm")
 async def confirm_add_user(
     callback: CallbackQuery,
     state: FSMContext,
-    session: AsyncSession,
     user: User,
+    session: AsyncSession,
 ):
-    """Userni DB ga saqlash."""
+    """Foydalanuvchini yaratish."""
+    lang = user.language or "uz"
     data = await state.get_data()
     await callback.answer()
 
-    # DB ga yozamiz
-    new_user = await create_user_from_invite(
-        session=session,
-        telegram_id=data["telegram_id"],
-        full_name=data["full_name"],
-        username=None,
-        role=data["role"],
-        step_number=data.get("step_number"),
-        created_by=user.telegram_id,
-    )
+    try:
+        new_user = await create_user_from_invite(
+            session=session,
+            telegram_id=data["telegram_id"],
+            full_name=data["full_name"],
+            role=data["role"],
+            step_number=data.get("step_number"),
+            phone=data.get("phone"),
+            created_by=user.telegram_id,
+        )
 
-    await state.clear()
+        logger.info(
+            f"➕ User yaratildi: {new_user.full_name} "
+            f"(role={new_user.role}) tomonidan {user.full_name}"
+        )
 
-    role_name = ROLE_NAMES.get(new_user.role, new_user.role)
-    text = (
-        f"✅ <b>Foydalanuvchi muvaffaqiyatli qo'shildi!</b>\n\n"
-        f"👤 Ism: <b>{new_user.full_name}</b>\n"
-        f"🆔 Telegram ID: <code>{new_user.telegram_id}</code>\n"
-        f"🎭 Rol: {role_name}\n"
-    )
-    if new_user.step_number:
-        text += f"🔧 Bo'lim: {STEP_NAMES.get(new_user.step_number, new_user.step_number)}\n"
+        await state.clear()
 
-    text += "\n<i>Endi foydalanuvchi botga /start bossa, tizimga kiradi.</i>"
+        role_name = get_role_name(new_user.role, lang)
 
-    await callback.message.edit_text(text)
+        text = (
+            f"✅ <b>{_('admin.user_add_created', language=lang)}</b>\n\n"
+            f"👤 <b>{new_user.full_name}</b>\n"
+            f"🆔 <code>{new_user.telegram_id}</code>\n"
+            f"🎭 {role_name}\n"
+        )
+
+        if new_user.step_number:
+            step_name = get_step_name(new_user.step_number, lang)
+            text += f"🔧 {step_name}\n"
+
+        text += f"\n<i>{_('admin.user_add_hint', language=lang)}</i>"
+
+        await callback.message.edit_text(text)
+
+    except Exception as e:
+        logger.exception(f"❌ User yaratishda xato: {e}")
+        await state.clear()
+        await callback.message.edit_text(
+            _("common.error_generic", language=lang)
+        )
 
 
-# ==== Qaytadan ====
-@router.callback_query(AddUserFSM.confirm, F.data == "add_user_restart")
+# ==================== Qaytadan ====================
+@router.callback_query(AddUserFSM.confirm, F.data == "user_add_restart")
 async def restart_add_user(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
 ):
     """Boshidan boshlash."""
+    lang = user.language or "uz"
     await callback.answer()
     await state.clear()
     await state.set_state(AddUserFSM.telegram_id)
 
     await callback.message.edit_text(
-        "➕ <b>Yangi foydalanuvchi qo'shish</b>\n\n"
-        "1️⃣ <b>Telegram ID</b> ni kiriting:",
-        reply_markup=cancel_add_user_keyboard(),
+        _("admin.user_add_step1", language=lang),
+        reply_markup=cancel_add_user_keyboard(lang),
     )
 
 
-# ==== Bekor qilish ====
-@router.callback_query(F.data == "add_user_cancel")
+# ==================== Bekor qilish ====================
+@router.callback_query(F.data == "user_add_cancel")
 async def cancel_add_user(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
 ):
     """Bekor qilish."""
-    await callback.answer("❌ Bekor qilindi")
+    lang = user.language or "uz"
+    await callback.answer(_("common.cancel", language=lang))
     await state.clear()
 
     await callback.message.edit_text(
-        "❌ <b>Bekor qilindi.</b>\n\n"
-        "Foydalanuvchilar ro'yxatiga qaytish uchun /start bosing."
+        _("common.cancelled", language=lang),
     )
 
 
-# ==== Yordamchi ====
-async def _show_confirmation(message: Message, state: FSMContext) -> None:
+# ==================== Yordamchi ====================
+async def _show_confirmation(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    use_edit: bool = True,
+) -> None:
     """Tasdiqlash oynasini ko'rsatish."""
+    lang = user.language or "uz"
     data = await state.get_data()
 
-    role_name = ROLE_NAMES.get(data["role"], data["role"])
-    phone = data.get("phone") or "—"
-    step_text = "—"
-    if data.get("step_number"):
-        step_text = STEP_NAMES.get(data["step_number"], str(data["step_number"]))
+    role_name = get_role_name(data.get("role", "worker"), lang)
 
     text = (
-        f"📋 <b>Tasdiqlash</b>\n\n"
-        f"🆔 Telegram ID: <code>{data['telegram_id']}</code>\n"
-        f"👤 Ism: <b>{data['full_name']}</b>\n"
-        f"📞 Telefon: {phone}\n"
-        f"🎭 Rol: {role_name}\n"
+        f"📋 <b>{_('common.confirm', language=lang)}</b>\n\n"
+        f"👤 <b>{data.get('full_name')}</b>\n"
+        f"🆔 <code>{data.get('telegram_id')}</code>\n"
+        f"🎭 {role_name}\n"
     )
 
     if data.get("step_number"):
-        text += f"🔧 Bo'lim: {step_text}\n"
+        step_name = get_step_name(data["step_number"], lang)
+        text += f"🔧 {step_name}\n"
 
-    text += "\n<b>Ma'lumotlar to'g'rimi?</b>"
+    if data.get("phone"):
+        text += f"📞 {data['phone']}\n"
 
-    await message.edit_text(
-        text,
-        reply_markup=confirm_add_user_keyboard(),
-    )
+    text += f"\n<b>{_('admin.user_add_confirm_question', language=lang)}</b>"
+
+    keyboard = confirm_add_user_keyboard(lang)
+
+    if use_edit:
+        try:
+            await message.edit_text(text, reply_markup=keyboard)
+        except Exception:
+            await message.answer(text, reply_markup=keyboard)
+    else:
+        await message.answer(text, reply_markup=keyboard)

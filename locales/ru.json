@@ -182,7 +182,16 @@
     "excel_trucks_in_progress": "🔵 Trucklar в процессе",
     "excel_steps_all": "📋 Все steplar",
     "excel_hint": "💡 Файл скачается в формате .xlsx.",
-    "excel_generating": "📊 Отчёт готовится..."
+    "excel_generating": "📊 Отчёт готовится...",
+    "timeline_title": "📅 История Truck",
+    "timeline_duration_days": "⏱ Общая длительность: {days} дн {hours} ч",
+    "timeline_duration_hours": "⏱ Общая длительность: {hours} ч",
+    "timeline_completed": "🏁 Завершён: {date}",
+    "truck_delete_confirm": "🗑 Удалить {truck}?",
+    "user_add_title": "Новый пользователь",
+    "user_block": "Заблокировать",
+    "user_unblock": "Активировать",
+    "truck_add_serial": "➕ Новый truck\n\n1️⃣ Введите серийный номер:\n\nНапример: TR-2026-001"
   },
   "settings": {
     "title": "🔔 Настройки",

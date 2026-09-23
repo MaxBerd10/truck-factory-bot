@@ -182,7 +182,16 @@
     "excel_trucks_in_progress": "🔵 Жараёндаги trucklar",
     "excel_steps_all": "📋 Барча steplar",
     "excel_hint": "💡 Файл .xlsx форматда юклаб олинади.",
-    "excel_generating": "📊 Ҳисобот тайёрланмоқда..."
+    "excel_generating": "📊 Ҳисобот тайёрланмоқда...",
+    "timeline_title": "📅 Truck тарихи",
+    "timeline_duration_days": "⏱ Умумий давомийлик: {days} кун {hours} соат",
+    "timeline_duration_hours": "⏱ Умумий давомийлик: {hours} соат",
+    "timeline_completed": "🏁 Тугатилган: {date}",
+    "truck_delete_confirm": "🗑 {truck} ни ўчиришни тасдиқлайсизми?",
+    "user_add_title": "Янги фойдаланувчи",
+    "user_block": "Блоклаш",
+    "user_unblock": "Активлаштириш",
+    "truck_add_serial": "➕ Янги truck қўшиш\n\n1️⃣ Сериал рақамни киритинг:\n\nМасалан: TR-2026-001"
   },
   "settings": {
     "title": "🔔 Созламалар",
